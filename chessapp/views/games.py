@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from chessapp.models import Game, Move
 from django.views.decorators.csrf import csrf_exempt	
 from django.utils import timezone
-from chessapp.templatetags.extras import is_legal_move, move_causes_check
+from chessapp.templatetags.extras import is_legal_move, move_causes_check, pick_move
 @login_required
 @csrf_exempt
 def games(request):
@@ -51,10 +51,13 @@ def games(request):
 				#execute the newest move
 				board[int(move.to_square[1])][int(move.to_square[0])] = board[int(move.from_square[1])][int(move.from_square[0])]
 				board[int(move.from_square[1])][int(move.from_square[0])] = ""
-				#reset the moves set so it has the most recent move
+				#reset the moves set so it has the new move
 				moves = Move.objects.filter(game=game)
 			else:
 				message = "Illegal move! "
+		
+		
+		print(pick_move(board, "b"))
 		
 		#assigning square colors
 		for y in range(0,8):

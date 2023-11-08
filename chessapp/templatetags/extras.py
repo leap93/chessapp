@@ -114,19 +114,19 @@ def all_legal_moves(board, color):
 		for x in range(0,8):
 			if board[y][x] != "" and board[y][x][0] == color:
 				if board[y][x][1:] == "knight":
-					if y + 1 < 7 and x + 2 < 7 and isLegalMoveKnight(board, board[y][x], board[y + 1][x + 2], x, y, x + 2, y + 1):
+					if y + 1 < 8 and x + 2 < 8 and isLegalMoveKnight(board, board[y][x], board[y + 1][x + 2], x, y, x + 2, y + 1):
 						moves.append({"fromX": x, "fromY": y, "toX": x + 2, "toY": y + 1})
-					if y + 1 < 7 and x - 2 > -1 and isLegalMoveKnight(board, board[y][x], board[y + 1][x - 2], x, y, x - 2, y + 1):
+					if y + 1 < 8 and x - 2 > -1 and isLegalMoveKnight(board, board[y][x], board[y + 1][x - 2], x, y, x - 2, y + 1):
 						moves.append({"fromX": x, "fromY": y, "toX": x - 2, "toY": y + 1})
-					if y - 1 > -1 and x + 2 < 7 and isLegalMoveKnight(board, board[y][x], board[y - 1][x + 2], x, y, x + 2, y - 1):
+					if y - 1 > -1 and x + 2 < 8 and isLegalMoveKnight(board, board[y][x], board[y - 1][x + 2], x, y, x + 2, y - 1):
 						moves.append({"fromX": x, "fromY": y, "toX": x + 2, "toY": y - 1})
 					if y - 1 > -1 and x - 2 > -1 and isLegalMoveKnight(board, board[y][x], board[y - 1][x - 2], x, y, x - 2, y - 1):
 						moves.append({"fromX": x, "fromY": y, "toX": x - 2, "toY": y - 1})
-					if y + 2 < 7 and x + 1 < 7 and isLegalMoveKnight(board, board[y][x], board[y + 2][x + 1], x, y, x + 1, y + 2):
+					if y + 2 < 8 and x + 1 < 8 and isLegalMoveKnight(board, board[y][x], board[y + 2][x + 1], x, y, x + 1, y + 2):
 						moves.append({"fromX": x, "fromY": y, "toX": x + 1, "toY": y + 2})
 					if y + 2 < 7 and x - 1 > -1 and isLegalMoveKnight(board, board[y][x], board[y + 2][x - 1], x, y, x - 1, y + 2):
 						moves.append({"fromX": x, "fromY": y, "toX": x - 1, "toY": y + 2})
-					if y - 2 > -1 and x + 1 < 7 and isLegalMoveKnight(board, board[y][x], board[y - 2][x + 1], x, y, x + 1, y - 2):
+					if y - 2 > -1 and x + 1 < 8 and isLegalMoveKnight(board, board[y][x], board[y - 2][x + 1], x, y, x + 1, y - 2):
 						moves.append({"fromX": x, "fromY": y, "toX": x + 1, "toY": y - 2})
 					if y - 2 > -1 and x - 1 > -1 and isLegalMoveKnight(board, board[y][x], board[y - 2][x - 1], x, y, x - 1, y - 2):
 						moves.append({"fromX": x, "fromY": y, "toX": x - 1, "toY": y - 2})
@@ -207,13 +207,12 @@ def move_causes_check(board, move):
 	move["toX"] = int(move["toX"])
 	move["toY"] = int(move["toY"])
 	
-	
 	if board[move["fromY"]][move["fromX"]][0] == "w":
 		color = "w"
 		opponent = "b"
-	destination = board[move["toY"]][move["toX"]]
 	
 	#make the move
+	destination = board[move["toY"]][move["toX"]]
 	board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
 	board[move["fromY"]][move["fromX"]] = ""
 	
@@ -230,4 +229,93 @@ def move_causes_check(board, move):
 	board[move["toY"]][move["toX"]] = destination	
 
 	return check
-							
+				
+def pick_move(board, color):
+
+	max_move = ""
+	max_score = 0
+	opponent = "b";
+	if color == "w":
+		moves = all_legal_moves(board, color)
+		max_score = -1000000000
+	else:
+		opponent = "w"
+		moves = all_legal_moves(board, color)
+		max_score = 1000000000
+
+	for move in moves:
+		if move_causes_check(board, move):
+			continue
+		
+		#make the move
+		destination = board[move["toY"]][move["toX"]]
+		board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
+		board[move["fromY"]][move["fromX"]] = ""		
+		print(move)
+		score = scoreBoard(board)
+		if (color == "w" and score > max_score) or (color == "b" and score < max_score):
+			max_move = move
+			max_score = score
+		#undo the move
+		board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
+		board[move["toY"]][move["toX"]] = destination	
+	return max_move
+
+	
+
+def scoreBoard(board):
+	score = 0
+	pieces = []
+	for y in range(0,8):
+		for x in range(0,8):
+			if(board[y][x] != ""):
+				pieces.append({"x" : x, "y" : y})
+	for piece in pieces:
+		piece_text = board[piece["y"]][piece["x"]]
+		type = piece_text[1:]
+		color = piece_text[0]
+
+		#pawn score based on it's placement on board
+		if type == "pawn":
+			if color == "w":						
+				if piece["y"] == 7:
+					score = score + 80
+				else:
+					score = score + piece["y"] + 10	
+			else:
+				if piece["y"] == 0:
+					score = score - 80
+				else:
+					score = score + piece["y"] - 7 - 10
+		
+		pointing = 0
+		#material score
+		if type == "knight" or type == "bishop":
+			pointing = 30
+		elif type == "rook":
+			pointing = 50			
+		elif type == "queen":
+			pointing = 80				
+		elif type == "king":
+			pointing = 10000
+			adj_score = 3
+			#King security evaluation
+			for dx in range(-1, 2):
+				for dy in range(-1, 2):
+					if piece["x"] + dx > 7 or piece["x"] + dx < -1 or piece["y"] + dy > 7 or piece["y"] + dy < -1:
+						continue
+					
+					adjScorePiece = board[piece["y"] + dy][piece["x"] + dx]
+					if color == "w":
+						if adjScorePiece != "" and adjScorePiece[0] == "w":
+							score = score + adj_score
+					else:
+						if adjScorePiece != "" and adjScorePiece[0] == "b":
+							score = score - adj_score
+
+		if color == "w":
+			score = score + pointing
+		else:
+			score = score - pointing	
+	print(score)
+	return score
