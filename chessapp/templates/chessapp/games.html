@@ -1,0 +1,21 @@
+
+<p>Games as white:</p>
+{% for game in games1 %}
+
+<div>
+<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a>
+</div>
+{% empty %}
+<p>No games</p>
+{% endfor %}
+
+<p>Games as black:</p>
+{% for game in games2 %}
+
+<div>
+<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a>
+</div>
+{% empty %}
+<p>No games</p>
+{% endfor %}
+

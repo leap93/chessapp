@@ -1,0 +1,1012 @@
+<html>
+	<head>
+		<title>
+			Shakkia!
+		</title>
+		<script type="text/javascript">
+			var selectedX = 0;
+			var selectedY = 0;
+			var selectedElement;
+
+			var isLocked = false;
+			var board = new Board(newGame());
+			var piece = null;
+			
+			function Board(pieces){
+				this.allMoves = [];
+				this.pieces = pieces;
+				this.boardGrid = [null, Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; }), Array.apply(null, Array(9)).map(function (x) { return null; })];
+				for(var piece in pieces){
+					this.boardGrid[pieces[piece].x][pieces[piece].y] = pieces[piece]
+				}
+				
+				this.wKing = new Piece("wking", 5, 1);
+				this.bKing = new Piece("bking", 5, 8);				
+				this.boardGrid[5][1] = this.wKing;
+				this.boardGrid[5][8] = this.bKing;
+				this.pieces.push(this.wKing);
+				this.pieces.push(this.bKing);
+
+
+				this.removePiece = function(x,y){
+					for(var index in this.pieces){
+						var piece = this.pieces[index];
+						if(piece.x == x && piece.y == y){
+							this.pieces.splice(index, 1);
+							return piece;
+						}
+					}				
+					return null;				
+				
+				}
+				
+				
+			}
+			
+			function Move(x, y, dx, dy, piece){
+				this.x = x;
+				this.y = y;
+				this.dx = dx;
+				this.dy = dy;
+				this.piece = piece;
+				this.execute = function(){
+					this.isEnPassant = false;
+					this.isShortCastling = false;
+					this.isLongCastling = false;
+					this.pawnToQueen = false;
+					//check if the move is a castling
+					
+					try{
+					
+					if(this.piece.type == "king" && this.x == 5 && this.dx == 3){
+						board.boardGrid[4][this.y] = board.boardGrid[1][this.y];
+						board.boardGrid[1][this.y] = null;
+						board.boardGrid[4][this.y].x = 4;
+						this.longCastling = true;
+					}
+					if(this.piece.type == "king" && this.x == 5 && this.dx == 7){
+						board.boardGrid[6][this.y] = board.boardGrid[8][this.y];
+						board.boardGrid[8][this.y] = null;
+						board.boardGrid[6][this.y].x = 6;
+						this.shortCastling = true;
+					}								
+				
+					}catch(e){
+						console.log(this);
+						console.log(this.piece.x);
+						console.log(this.piece.y);
+						console.log(board.boardGrid[6][8]);
+						console.log(board.boardGrid[7][8]);
+						
+					}
+				
+					//check if pawn is converted to a queen
+					if(this.piece.name == "wpawn" && this.dy == 8){
+						this.pawnToQueen = true;
+						this.piece.name = "wqueen";
+						this.piece.type = "queen";	
+					}
+					if(this.piece.name == "bpawn" && this.dy == 1){
+						this.pawnToQueen = true;
+						this.piece.name = "bqueen";
+						this.piece.type = "queen";	
+					}
+
+					this.removedPiece = board.removePiece(this.dx, this.dy);
+					this.piece.x = this.dx;
+					this.piece.y = this.dy;
+					board.boardGrid[this.dx][this.dy] = this.piece;
+					board.boardGrid[this.x][this.y] = null;				
+					board.allMoves.push(this);
+				};
+				
+				this.undo = function(){
+					this.piece.x = this.x;
+					this.piece.y = this.y;
+					board.boardGrid[this.dx][this.dy] = this.removedPiece;
+					if(this.removedPiece !== null){
+						board.pieces.push(this.removedPiece);
+					}
+					
+					board.boardGrid[this.x][this.y] = this.piece;
+					if(this.pawnToQueen){
+						this.piece.name = this.piece.color + "pawn";
+						this.piece.type = "pawn";
+					}
+					if(this.shortCastling){
+						board.boardGrid[8][this.y] = board.boardGrid[6][this.y];
+						board.boardGrid[6][this.y] = null;
+						board.boardGrid[8][this.y].x = 8;						
+					}
+					if(this.longCastling){
+						board.boardGrid[1][this.y] = board.boardGrid[4][this.y];
+						board.boardGrid[4][this.y] = null;
+						board.boardGrid[1][this.y].x = 1;					
+					}					
+					board.allMoves.pop();
+					
+				};
+				
+			}
+			
+			function masterUndo(){
+				if(!isLocked && board.allMoves.length > 1){
+					board.allMoves[board.allMoves.length - 1].undo(board);
+					board.allMoves[board.allMoves.length - 1].undo(board);
+					refreshBoard();
+				}
+			}
+			
+			function suggest(){
+				isLocked = true;
+				document.getElementById("info").value = "";
+				setTimeout(function(){pickMove(true, 4, true);}, 10);
+			}			
+			
+			function Piece(name, x, y){
+				this.name = name;
+				this.x = x;
+				this.y = y;
+				this.color = name.charAt(0);
+				this.type = name.substring(1);
+				this.hasMoved = function(){
+					for(var move in board.allMoves){
+						if(board.allMoves[move].piece == this){
+							return true;
+						}
+					}
+					return false;
+				};
+				this.isLegalMove = function(dx, dy){
+					if(dx > 8 || dx < 1 || dy > 8 || dy < 1){
+						return false;
+					}
+					if(this.type == "pawn"){
+						return isLegalMovePawn(this, dx, dy);
+					}else if(this.type == "knight"){
+						return isLegalMoveKnight(this, dx, dy);
+					}else if(this.type == "bishop"){
+						return isLegalMoveBishop(this, dx, dy);
+					}else if(this.type == "rook"){
+						return isLegalMoveRook(this, dx, dy);
+					}else if(this.type == "queen"){
+						return isLegalMoveRook(this, dx, dy) || isLegalMoveBishop(this, dx, dy);
+					}else{
+						return isLegalMoveKing(this, dx, dy)
+					}
+				};
+				
+				this.copy = function(){
+					return new Piece(this.name, this.x, this.y);
+				}
+			}		
+			
+			function reset(){
+				if(!isLocked){
+					board = new Board(newGame());
+					piece = null;	
+					refreshBoard();
+					document.getElementById("info").value = "Uusi peli aloitettu. Onnea!";
+				}
+			}
+			
+			function boardClick(x, y){	
+				if(isLocked){
+					return;
+				}
+				//checks if the click was first
+				if(selectedX == 0){
+					refreshBoard();
+					piece = board.boardGrid[x][y];
+					//checks if the selected location has a white piece
+					if(piece !== null && piece.color == "w"){
+						//all moves
+						var moves = generatePossibleMoves(piece, board);
+						//moves that do not cause check
+						moves = filteredMoves(moves, "w");
+						if(moves.length == 0){
+							document.getElementById("info").value = "Ei sallittuja siirtoja!";
+						}else{
+							//Color all possible moves with red
+							for(var i = 0; i < moves.length; i++){
+								if(board.boardGrid[moves[i].dx][moves[i].dy] !== null){
+									document.getElementById(String(moves[i].dx)+String(moves[i].dy)).src = "r" + board.boardGrid[moves[i].dx][moves[i].dy].name + ".png";
+								}else{
+									document.getElementById(String(moves[i].dx)+String(moves[i].dy)).src = "r.png";
+								}
+							}
+							selectedX = x;
+							selectedY = y;
+							document.getElementById("info").value = "";
+						}
+					}
+				}else{		
+					var move = new Move(selectedX, selectedY, x, y, piece);
+					//undo selection if the same piece is clicked again
+					if(selectedX == x && selectedY == y){				
+						document.getElementById("info").value = "";
+						refreshBoard();
+					
+					//if the move is legal and does not cause check
+					}else if(true || piece.isLegalMove(x, y, board) && !kingChecked(move, "w")){
+						move.execute();
+						document.getElementById("info").value = "";				
+						refreshBoard();
+						
+						//trigger opponent's move
+						isLocked = true;
+						setTimeout(opponentMove, 10);
+					}else{
+						//illegal move selected
+						document.getElementById("info").value = "Laiton siirto!";
+						refreshBoard();
+					}
+					
+					//reset selected coordniates
+					selectedX = 0;
+					selectedY = 0;		
+								
+				}			
+			}
+			
+			//refereshes the visual board to match the virtual one. Also removes the red markings
+			function refreshBoard(){
+				for(var x = 1; x <= 8; x++){
+					for(var y = 1; y <= 8; y++){
+						var piece = board.boardGrid[x][y]
+						if(piece === null){
+							document.getElementById(String(x)+String(y)).src = boardColor(x, y) + ".png"; 
+						}else{
+							document.getElementById(String(x)+String(y)).src = boardColor(x, y) + piece.name + ".png";
+						}
+					}				
+				}	
+			}
+			
+			//square color based on it's coordinates
+			function boardColor(x, y){
+				if( (y%2==1 && x%2 == 1) || (y%2==0 && x%2 == 0) ){
+					return "b";
+				}else{
+					return "w";
+				}
+			}
+			
+			//selects a move and excecutes it
+			function opponentMove(color){
+						var move = pickMove(color == "w", 4, false);
+						
+						if(move === null){
+							document.getElementById("info").value = "Voitit!";
+						}else{
+							move.execute(board);
+							refreshBoard();
+							// add red markings to show what piece moved and where
+							document.getElementById(String(move.x)+String(move.y)).src = "r.png";
+							document.getElementById(String(move.dx)+String(move.dy)).src = "r" + move.piece.name + ".png";	
+							if(filteredMoves(allLegalMoves("w", board), "w").length == 0){
+								document.getElementById("info").value = "Hävisit!";
+							}
+						}						
+						setTimeout(function(){isLocked = false;}, 10);
+						//var opponent = "b";
+						//if(color == "b"){
+						//	opponent = "w"
+						//}
+						//setTimeout(() => {opponentMove(opponent);}, 10);
+			}
+					
+			function isLegalMovePawn(piece, dx, dy){
+				var destination = board.boardGrid[dx][dy];
+				if(piece.color == "w"){
+					if(piece.y == 2 && piece.y + 2 == dy && piece.x == dx && destination === null && board.boardGrid[dx][dy-1] === null){
+						return true;
+					}
+					if(piece.y + 1 == dy && piece.x == dx && destination === null){
+						return true;
+					}					
+					
+					if(piece.y + 1 == dy && Math.abs(piece.x - dx) == 1 && destination !== null && destination.color == "b"){
+						return true;
+					}							
+				}else{
+					if(piece.y == 7 && piece.y - 2 == dy && piece.x == dx && destination === null && board.boardGrid[dx][dy+1] === null){
+						return true;
+					}
+					if(piece.y - 1 == dy && piece.x == dx && destination === null){
+						return true;
+					}					
+					
+					if(piece.y - 1 == dy && Math.abs(piece.x - dx) == 1 && destination !== null && destination.color == "w"){
+						return true;
+					}						
+				}		
+				return false;
+			}
+			
+			function isLegalMoveKnight(piece, dx, dy){
+				var destination = board.boardGrid[dx][dy];
+				if(destination !== null && destination.color == piece.color){
+					return false;
+				}
+				if((Math.abs(piece.x - dx) == 2 && Math.abs(piece.y - dy) == 1) || (Math.abs(piece.x - dx) == 1 && Math.abs(piece.y - dy) == 2)){
+					return true;
+				}
+				return false;
+			}
+
+			function isLegalMoveBishop(piece, dx, dy){
+				var destination = board.boardGrid[dx][dy];
+				if(destination !== null && destination.color == piece.color){
+					return false;
+				}
+				if(Math.abs(piece.x - dx) != Math.abs(piece.y - dy)){
+					return false;
+				}
+				for(var d = 1; d < Math.abs(piece.x - dx); d++){
+					if(board.boardGrid[piece.x+Math.sign(dx - piece.x)*d][piece.y+Math.sign(dy - piece.y)*d] !== null){
+						return false;
+					}			
+				}
+				return true;
+			}			
+			
+			function isLegalMoveRook(piece, dx, dy){
+				var destination = board.boardGrid[dx][dy];
+				if(destination !== null && destination.color == piece.color){
+					return false;
+				}		
+				
+				if(piece.y == dy){
+					for(var d = 1; d < Math.abs(piece.x - dx); d++){
+						if(board.boardGrid[piece.x+Math.sign(dx - piece.x)*d][piece.y] !== null){
+							return false;
+						}					
+					}
+				}else if(piece.x == dx){
+					for(var d = 1; d < Math.abs(piece.y - dy); d++){
+						if(board.boardGrid[piece.x][piece.y+Math.sign(dy - piece.y)*d] !== null){
+							return false;
+						}					
+					}				
+				}else{
+					return false;
+				}
+				return true;
+			}				
+
+			function isLegalMoveKing(piece, dx, dy){
+				if(board.boardGrid[1][1] !== null && board.boardGrid[5][1] !== null && !board.boardGrid[1][1].hasMoved(board) && !board.boardGrid[5][1].hasMoved(board) && board.boardGrid[2][1] === null && board.boardGrid[3][1] === null && board.boardGrid[4][1] === null && dx == 3 && dy == 1 && piece.name == "wking"){
+					return true;
+				}				
+
+				if(board.boardGrid[8][1] !== null && board.boardGrid[5][1] !== null && !board.boardGrid[8][1].hasMoved(board) && !board.boardGrid[5][1].hasMoved(board) && board.boardGrid[6][1] === null && board.boardGrid[7][1] === null && dx == 7 && dy == 1 && piece.name == "wking"){
+					return true;
+				}	
+
+				if(board.boardGrid[1][8] !== null && board.boardGrid[5][8] !== null && !board.boardGrid[1][8].hasMoved(board) && !board.boardGrid[5][8].hasMoved(board) && board.boardGrid[2][8] === null && board.boardGrid[3][8] === null && board.boardGrid[4][8] === null && dx == 3 && dy == 8 && piece.name == "bking"){
+					return true;
+				}				
+
+				if(board.boardGrid[8][8] !== null && board.boardGrid[5][8] !== null && !board.boardGrid[8][8].hasMoved(board) && !board.boardGrid[5][8].hasMoved(board) && board.boardGrid[6][8] === null && board.boardGrid[7][8] === null && dx == 7 && dy == 8 && piece.name == "bking"){
+					return true;
+				}					
+				
+				var destination = board.boardGrid[dx][dy];
+				if(destination !== null && destination.color == piece.color){
+					return false;
+				}
+				if(Math.abs(piece.x - dx) > 1 || Math.abs(piece.y - dy) > 1){
+					return false;
+				}
+				
+				return true;
+			}	
+			
+			//generates all the possible moves. does not take check into account
+			function generatePossibleMoves(piece){
+				moves = [];
+					
+				if(piece.type == "knight"){
+					if(piece.isLegalMove(piece.x + 2, piece.y + 1)){
+						moves.push(new Move(piece.x, piece.y, piece.x + 2, piece.y + 1, piece));
+					}				
+					if(piece.isLegalMove(piece.x + 2, piece.y - 1)){
+						moves.push(new Move(piece.x, piece.y, piece.x + 2, piece.y - 1, piece));
+					}	
+					if(piece.isLegalMove(piece.x + 1, piece.y + 2)){
+						moves.push(new Move(piece.x, piece.y, piece.x + 1, piece.y + 2, piece));
+					}	
+					if(piece.isLegalMove(piece.x + 1, piece.y - 2)){
+						moves.push(new Move(piece.x, piece.y, piece.x + 1, piece.y - 2, piece));
+					}	
+					if(piece.isLegalMove(piece.x - 2, piece.y + 1)){
+						moves.push(new Move(piece.x, piece.y, piece.x - 2, piece.y + 1, piece));
+					}	
+					if(piece.isLegalMove(piece.x - 2, piece.y - 1)){
+						moves.push(new Move(piece.x, piece.y, piece.x - 2, piece.y - 1, piece));
+					}	
+					if(piece.isLegalMove(piece.x - 1, piece.y + 2)){
+						moves.push(new Move(piece.x, piece.y, piece.x - 1, piece.y + 2, piece));
+					}	
+					if(piece.isLegalMove(piece.x - 1, piece.y - 2)){
+						moves.push(new Move(piece.x, piece.y, piece.x - 1, piece.y - 2, piece));
+					}						
+					return moves;
+				}
+					
+				var y = piece.y + 1;
+				while(y <= 8){
+					if(piece.isLegalMove(piece.x, y)){
+						moves.push(new Move(piece.x, piece.y, piece.x, y, piece));
+					}else{
+						break;
+					}
+					y++;
+				}
+				
+				y = piece.y - 1;
+				while(y >= 1){
+					if(piece.isLegalMove(piece.x, y)){
+						moves.push(new Move(piece.x, piece.y, piece.x, y, piece));
+					}else{
+						break;
+					}	
+					y--;
+				}				
+				
+				var x = piece.x + 1;
+				while(x <= 8){
+					if(piece.isLegalMove(x, piece.y)){
+						moves.push(new Move(piece.x, piece.y, x, piece.y, piece));
+					}else{
+						break;
+					}				
+					x++;
+				}
+				
+				x = piece.x - 1;
+				while(x >= 1){
+					if(piece.isLegalMove(x, piece.y)){
+						moves.push(new Move(piece.x, piece.y, x, piece.y, piece));
+					}else{
+						break;
+					}					
+					x--;
+				}					
+				
+				var d = 1;
+				while(piece.x + d <= 8 && piece.y + d <= 8){
+					if(piece.isLegalMove(piece.x + d, piece.y + d)){
+						moves.push(new Move(piece.x, piece.y, piece.x + d, piece.y + d, piece));
+					}else{
+						break;
+					}
+					d++;
+				}
+
+				d = 1;
+				while(piece.x - d >= 1 && piece.y - d>= 1){
+					if(piece.isLegalMove(piece.x - d, piece.y - d)){
+						moves.push(new Move(piece.x, piece.y, piece.x - d, piece.y - d, piece));
+					}else{
+						break;
+					}
+					d++;
+				}
+
+				d = 1;
+				while(piece.x + d <= 8 && piece.y - d>= 1){
+					if(piece.isLegalMove(piece.x + d, piece.y - d)){
+						moves.push(new Move(piece.x, piece.y, piece.x + d, piece.y - d, piece));
+					}else{
+						break;
+					}
+					d++;
+				}				
+
+				d = 1;
+				while(piece.x - d >= 1 && piece.y + d <= 8){
+					if(piece.isLegalMove(piece.x - d, piece.y + d)){
+						moves.push(new Move(piece.x, piece.y, piece.x - d, piece.y + d, piece));
+					}else{
+						break;
+					}
+					d++;
+				}
+				return moves;			
+			}			
+			
+			//takes out the moves that cause check
+			function filteredMoves(moves, color){
+				var uncheckedMoves = [];
+				for(var i = 0; i < moves.length; i++){
+					if(!kingChecked(moves[i], color)){
+						uncheckedMoves.push(moves[i]);
+					}
+				}
+				return uncheckedMoves;
+			}
+			
+			//checks if the move causes check
+			function kingChecked(move, color){
+				move.execute();
+			
+				var kingX;
+				var kingY;
+				//find the king
+				
+				if(color == "w"){
+					kingX = board.wKing.x;
+					kingY = board.wKing.y;
+				}else{
+					kingX = board.bKing.x;
+					kingY = board.bKing.y;				
+				}
+				//set opponent color
+				var opponent = "w";
+				if(color == "w"){
+					opponent = "b";
+				}
+				var isChecked = false;
+				moves = allLegalMoves(opponent);
+				
+				//check if any opponent pieces can capture the king
+				for(var i = 0; i < moves.length; i++){
+					var isChecked = moves[i].dx == kingX && moves[i].dy == kingY;				
+					if(isChecked){
+						isChecked = true;
+						break;
+					}
+				}			
+				move.undo();
+				return isChecked;	
+			}
+			
+			
+			function moveCausesTie(move, color){
+				if(color == "w"){
+					opponent = "b";
+				}
+				if(kingChecked(move, opponent)){
+					return false;
+				}
+				var opponent = "w";
+				move.execute();
+				var result = filteredMoves(allLegalMoves(opponent), opponent).length == 0;
+				move.undo();
+				return result;
+			}
+
+			function allLegalMoves(color){
+				var moves = [];
+				for(var x = 0; x < board.pieces.length; x++){
+					var piece = board.pieces[x];
+					
+					if(piece.color == color){
+						var allMoves = generatePossibleMoves(piece);
+						for(var y = 0; y < allMoves.length; y++){
+							moves.push(allMoves[y]);
+						}			
+					}
+				}
+				return moves;
+			}			
+			
+			//picks to move by searching the game tree and scoring to board in the deepest nodes
+			function pickMove(max, dept, suggestion){
+
+				var moves;		
+				var maxMove = null;
+				var maxScore = 0;
+				var color = "w";
+				var opponent = "b";
+				if(max){
+					moves = allLegalMoves("w");
+
+					maxScore = -1000000000;
+				}else{
+					color = "b";
+					opponent = "w";
+					moves = allLegalMoves("b");
+
+					maxScore = 1000000000;
+				}
+				
+				//filter moves that cause check in the first branches
+				if(dept == 4){
+					moves = filteredMoves(moves, color);
+				}
+				//check all moves and how they score
+				if(moves.length == 1){
+					if(suggestion){
+						document.getElementById("info").value = "(" + maxMove.x + "." + maxMove.y + ") -> (" + maxMove.dx + "." + maxMove.dy + ")";
+						isLocked = false;
+						return null;						
+					}else{
+						return moves[0];					
+					}
+				}
+				
+				
+				for(var a = 0; a < moves.length; a++){
+					if(dept == 4){
+						console.log(a+1 + "/" + moves.length);
+						if(moveCausesTie(move, color)){
+							continue;
+						}
+						
+					}
+					var move = moves[a];					
+					
+					//make the move in the virtual board
+					move.execute();										
+
+					var score = 0;
+									
+					
+					//if the desired dept is reach score the board. Otherwise search deeper
+					if(dept == 1){
+						score = scoreBoard();
+					}else{
+						score = pickMove(!max, dept-1);
+					}
+								
+					//update the best score if a better is found
+					if((!max && score < maxScore) || (max && score > maxScore)){
+						maxMove = move;
+						maxScore = score;
+					}
+
+					//undo the move
+					move.undo();
+					
+				}
+				
+				if(suggestion){
+					document.getElementById("info").value = "(" + maxMove.x + "." + maxMove.y + ") -> (" + maxMove.dx + "." + maxMove.dy + ")";
+					isLocked = false;
+					return null;
+				}
+				
+				
+				
+				if(dept == 4){
+					return maxMove;
+				}else{
+					return maxScore;
+				}			
+			}
+
+
+			//score the current virtual board
+			function scoreBoard(){
+				var score = 0;
+				var pieces = board.pieces;
+				for(var x = 0; x < pieces.length; x++){
+					
+					var scorePiece = pieces[x];
+					var type = scorePiece.type;
+
+					//pawn score based on it's placement on board
+					if(type == "pawn"){
+						if(scorePiece.color == "w"){						
+							if(scorePiece.y == 8){
+								score = score + 80;
+							}else{
+								score = score + scorePiece.y + 10;
+							}
+						}else{
+						
+							if(scorePiece.y == 1){
+								score = score - 80;
+							}else{
+								score = score + scorePiece.y - 9 - 10;
+							}
+						}
+					}
+					var pointing = 0;
+
+					//material score
+					if(type == "knight" || type == "bishop"){
+						pointing = 30;
+					}
+					else if(type == "rook"){
+						pointing = 50;
+					}					
+					else if(type == "queen"){
+						pointing = 80;
+					}							
+					else if(type == "king"){
+						pointing = 10000;
+						var adjScore = 3;
+						
+						//King security evaluation
+						for(var dx = -1; dx <= 1; dx++){
+							for(var dy = -1; dy <= 1; dy++){
+								
+								if(scorePiece.x + dx > 8 || scorePiece.x + dx < 1 || scorePiece.y + dy > 8 || scorePiece.y + dy < 1){
+									continue;
+								}
+								
+								var adjScorePiece = board.boardGrid[scorePiece.x + dx][scorePiece.y + dy];
+								if(scorePiece.color == "w"){
+									if(adjScorePiece !== null && adjScorePiece.color == "w"){
+										score = score + adjScore;
+									}
+								}else{
+									if(adjScorePiece !== null && adjScorePiece.color == "b"){
+										score = score - adjScore;
+									}								
+								}
+							}
+						}
+						
+					}						
+					if(scorePiece.color == "w"){
+						score = score + pointing;
+					}else{
+						score = score - pointing;
+					}			
+				}				
+				return score + Math.round(Math.random() * 10 - 5);
+			
+			}
+			
+			
+			function newGame(){		
+				pieces = [];
+				pieces.push(new Piece("wrook", 1, 1));
+				pieces.push(new Piece("wknight", 2, 1));
+				pieces.push(new Piece("wbishop", 3, 1));
+				pieces.push(new Piece("wqueen", 4, 1));
+				pieces.push(new Piece("wbishop", 6, 1));
+				pieces.push(new Piece("wknight", 7, 1));
+				pieces.push(new Piece("wrook", 8, 1));
+			
+				pieces.push(new Piece("wpawn", 1, 2));
+				pieces.push(new Piece("wpawn", 2, 2));
+				pieces.push(new Piece("wpawn", 3, 2));
+				pieces.push(new Piece("wpawn", 4, 2));
+				pieces.push(new Piece("wpawn", 5, 2));
+				pieces.push(new Piece("wpawn", 6, 2));
+				pieces.push(new Piece("wpawn", 7, 2));
+				pieces.push(new Piece("wpawn", 8, 2));
+				
+				pieces.push(new Piece("bpawn", 1, 7));
+				pieces.push(new Piece("bpawn", 2, 7));
+				pieces.push(new Piece("bpawn", 3, 7));
+				pieces.push(new Piece("bpawn", 4, 7));
+				pieces.push(new Piece("bpawn", 5, 7));
+				pieces.push(new Piece("bpawn", 6, 7));
+				pieces.push(new Piece("bpawn", 7, 7));
+				pieces.push(new Piece("bpawn", 8, 7));
+				
+				pieces.push(new Piece("brook", 1, 8));
+				pieces.push(new Piece("bknight", 2, 8));
+				pieces.push(new Piece("bbishop", 3, 8));
+				pieces.push(new Piece("bqueen", 4, 8));
+				pieces.push(new Piece("bbishop", 6, 8));
+				pieces.push(new Piece("bknight", 7, 8));
+				pieces.push(new Piece("brook", 8, 8));				
+				return pieces;
+			}
+			
+		</script>
+		
+	</head>
+	<body>
+		<table>
+			<tr>
+				<td>
+					<img src="wbrook.png" width="100" height="100" onclick="boardClick(1, 8, this);" id="18">
+				</td>
+				<td>
+					<img src="bbknight.png" width="100" height="100" onclick="boardClick(2, 8, this);" id="28">
+				</td>
+				<td>
+					<img src="wbbishop.png" width="100" height="100" onclick="boardClick(3, 8, this);" id="38">
+				</td>
+				<td>
+					<img src="bbqueen.png" width="100" height="100" onclick="boardClick(4, 8, this);" id="48">
+				</td>
+				<td>
+					<img src="wbking.png" width="100" height="100" onclick="boardClick(5, 8, this);" id="58">
+				</td>
+				<td>
+					<img src="bbbishop.png" width="100" height="100" onclick="boardClick(6, 8, this);" id="68">
+				</td>
+				<td>
+					<img src="wbknight.png" width="100" height="100" onclick="boardClick(7, 8, this);" id="78">
+				</td>
+				<td>
+					<img src="bbrook.png" width="100" height="100" onclick="boardClick(8, 8, this);" id="88">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(1, 7, this);" id="17">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(2, 7, this);" id="27">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(3, 7, this);" id="37">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(4, 7, this);" id="47">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(5, 7, this);" id="57">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(6, 7, this);" id="67">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(7, 7, this);" id="77">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(8, 7, this);" id="87">
+				</td>
+			</tr>	
+			<tr>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(1, 6, this);" id="16">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(2, 6, this);" id="26">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(3, 6, this);" id="36">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(4, 6, this);" id="46">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(5, 6, this);" id="56">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(6, 6, this);" id="66">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(7, 6, this);" id="76">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(8, 6, this);" id="86">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(1, 5, this);" id="15">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(2, 5, this);" id="25">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(3, 5, this);" id="35">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(4, 5, this);" id="45">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(5, 5, this);" id="55">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(6, 5, this);" id="65">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(7, 5, this);" id="75">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(8, 5, this);" id="85">
+				</td>
+			</tr>	
+			<tr>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(1, 4, this);" id="14">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(2, 4, this);" id="24">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(3, 4, this);" id="34">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(4, 4, this);" id="44">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(5, 4, this);" id="54">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(6, 4, this);" id="64">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(7, 4, this);" id="74">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(8, 4, this);" id="84">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(1, 3, this);" id="13">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(2, 3, this);" id="23">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(3, 3, this);" id="33">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(4, 3, this);" id="43">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(5, 3, this);" id="53">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(6, 3, this);" id="63">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(7, 3, this);" id="73">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(8, 3, this);" id="83">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(1, 2, this);" id="12">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(2, 2, this);" id="22">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(3, 2, this);" id="32">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(4, 2, this);" id="42">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(5, 2, this);" id="52">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(6, 2, this);" id="62">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(7, 2, this);" id="72">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(8, 2, this);" id="82">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="bwrook.png" width="100" height="100" onclick="boardClick(1, 1, this);" id="11">
+				</td>
+				<td>
+					<img src="wwknight.png" width="100" height="100" onclick="boardClick(2, 1, this);" id="21">
+				</td>
+				<td>
+					<img src="bwbishop.png" width="100" height="100" onclick="boardClick(3, 1, this);" id="31">
+				</td>
+				<td>
+					<img src="wwqueen.png" width="100" height="100" onclick="boardClick(4, 1, this);" id="41">
+				</td>
+				<td>
+					<img src="bwking.png" width="100" height="100" onclick="boardClick(5, 1, this);" id="51">
+				</td>
+				<td>
+					<img src="wwbishop.png" width="100" height="100" onclick="boardClick(6, 1, this);" id="61">
+				</td>
+				<td>
+					<img src="bwknight.png" width="100" height="100" onclick="boardClick(7, 1, this);" id="71">
+				</td>
+				<td>
+					<img src="wwrook.png" width="100" height="100" onclick="boardClick(8, 1, this);" id="81">
+				</td>
+			</tr>			
+		</table>
+		<input type="text" readonly="readonly" id="info" size="200" value="Uusi peli aloitettu. Onnea!"><br>
+		<button onclick="masterUndo()">Peruuta</button><button onclick="reset()">Uusi peli</button><button onclick="suggest()">Suosittele siirtoa</button>
+</body>
+</html>

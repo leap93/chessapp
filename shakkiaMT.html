@@ -1,0 +1,513 @@
+<html>
+	<head>
+		<title>
+			Shakkia!
+		</title>
+		<script src="worker.js"></script>
+		<script type="text/javascript">
+			var selectedX = 0;
+			var selectedY = 0;
+			var selectedElement;
+			var mainBoard = new Board(newGame());
+			var piece = null;	
+			var isLocked = false;
+			
+			function suggest(){
+				isLocked = true;
+				pickMove(true, 5, true);
+			}
+			
+			function masterUndo(){
+				if(!isLocked && mainBoard.allMoves.length > 1){
+					undo(mainBoard, mainBoard.allMoves[mainBoard.allMoves.length - 1]);
+					undo(mainBoard, mainBoard.allMoves[mainBoard.allMoves.length - 1]);
+					refreshBoard();
+				}
+			}		
+			
+			function reset(){
+				if(!isLocked){
+					mainBoard = new Board(newGame());
+					piece = null;	
+					refreshBoard();
+					document.getElementById("info").value = "Uusi peli aloitettu. Onnea!";
+				}
+			}			
+			
+			function boardClick(x, y){	
+				if(isLocked){
+					return;
+				}
+				//checks if the click was first
+				if(selectedX == 0){
+					refreshBoard();
+					piece = mainBoard.boardGrid[x][y];
+					//checks if the selected location has a white piece
+					if(piece !== null && piece.color == "w"){
+						//all moves
+						var moves = generatePossibleMoves(piece, mainBoard);
+						//moves that do not cause check
+						moves = filteredMoves(moves, "w", mainBoard);
+						if(moves.length == 0){
+							document.getElementById("info").value = "Ei sallittuja siirtoja!";
+						}else{
+							//Color all possible moves with red
+							for(var i = 0; i < moves.length; i++){
+								if(mainBoard.boardGrid[moves[i].dx][moves[i].dy] !== null){
+									document.getElementById(String(moves[i].dx)+String(moves[i].dy)).src = "r" + mainBoard.boardGrid[moves[i].dx][moves[i].dy].name + ".png";
+								}else{
+									document.getElementById(String(moves[i].dx)+String(moves[i].dy)).src = "r.png";
+								}
+							}
+							selectedX = x;
+							selectedY = y;
+							document.getElementById("info").value = "";
+						}
+					}
+				}else{		
+					var move = new Move(selectedX, selectedY, x, y, piece);
+					//undo selection if the same piece is clicked again
+					if(selectedX == x && selectedY == y){				
+						document.getElementById("info").value = "";
+						refreshBoard();
+					
+					//if the move is legal and does not cause check
+					}else if(isLegalMove(x, y, mainBoard, piece) && !kingChecked(move, "w", mainBoard)){
+						execute(mainBoard, move);
+						document.getElementById("info").value = "";				
+						refreshBoard();
+						
+						//trigger opponent's move
+						isLocked = true;
+						setTimeout(function(){pickMove(false, 5, false);}, 10);
+					}else{
+						//illegal move selected
+						document.getElementById("info").value = "Laiton siirto!";
+						refreshBoard();
+					}
+					
+					//reset selected coordniates
+					selectedX = 0;
+					selectedY = 0;		
+								
+				}			
+			}
+			//setTimeout(function(){pickMove(true, 5);}, 10);
+
+
+			//refereshes the visual board to match the virtual one. Also removes the red markings
+			function refreshBoard(){
+				for(var x = 1; x <= 8; x++){
+					for(var y = 1; y <= 8; y++){
+						var piece = mainBoard.boardGrid[x][y]
+						if(piece === null){
+							document.getElementById(String(x)+String(y)).src = boardColor(x, y) + ".png"; 
+						}else{
+							document.getElementById(String(x)+String(y)).src = boardColor(x, y) + piece.name + ".png";
+						}
+					}				
+				}	
+			}
+			
+			//square color based on it's coordinates
+			function boardColor(x, y){
+				if( (y%2==1 && x%2 == 1) || (y%2==0 && x%2 == 0) ){
+					return "b";
+				}else{
+					return "w";
+				}
+			}			
+
+			function moveCausesTie(move, color, board){
+				var opponent = "w";
+				if(color == "w"){
+					opponent = "b";
+				}
+				if(kingChecked(move, opponent, board)){
+					return false;
+				}
+				execute(board, move);
+				var result = filteredMoves(allLegalMoves(opponent, board), opponent, board).length == 0;
+				undo(board, move);
+				return result;
+			}
+			
+			
+			//picks to move by searching the game tree and scoring to board in the deepest nodes
+			function pickMove(max, dept, suggestion){
+				var moves;		
+				var movesCopy;
+				var maxMove = "";
+				var maxScore = 0;
+				var color = "w";
+				var opponent = "b";
+				if(max){
+					moves = allLegalMoves("w", mainBoard);
+					maxScore = -1000000000;
+				}else{
+					color = "b";
+					opponent = "w";
+					moves = allLegalMoves("b", mainBoard);
+					maxScore = 1000000000;
+				}
+				
+				//filter moves that cause check in the first branches
+
+				moves = filteredMoves(moves, color, mainBoard);
+
+				//check all moves and how they score
+
+
+				var movesList = [];
+				
+				if(moves.length == 1){
+					if(suggestion){
+						document.getElementById("info").value = "(" + maxMove.x + "." + maxMove.y + ") -> (" + maxMove.dx + "." + maxMove.dy + ")";
+						isLocked = false;
+						return null;						
+					}else{
+						execute(mainBoard, moves[0]);
+						refreshBoard();
+						// add red markings to show what piece moved and where
+						document.getElementById("info").value = "1/1";
+						document.getElementById(String(moves[0].x)+String(moves[0].y)).src = "r.png";
+						document.getElementById(String(moves[0].dx)+String(moves[0].dy)).src = "r" + moves[0].piece.name + ".png";	
+						isLocked = false;						
+					}
+					return;
+				}				
+				
+				if(moves.length == 0){
+					document.getElementById("info").value = "Voitit!";
+					isLocked = false;
+					return;
+				}
+				
+				for(var a = 0; a < moves.length; a++){
+					var move = moves[a];					
+					
+					if(moveCausesTie(move, color, mainBoard) || (mainBoard.allMoves.length > 4 && mainBoard.allMoves[mainBoard.allMoves.length - 4].x == move.x && mainBoard.allMoves[mainBoard.allMoves.length - 4].y == move.y && mainBoard.allMoves[mainBoard.allMoves.length - 4].dx == move.dx && mainBoard.allMoves[mainBoard.allMoves.length - 4].dy == move.dy && mainBoard.allMoves[mainBoard.allMoves.length - 4].piece == move.piece)){
+						movesList.push([1000000000, move]);
+						continue;
+					}
+					
+					
+					//make the move in the virtual board
+					execute(mainBoard, move);		
+					
+					
+					//python -m http.server --bind 127.0.0.1 8080
+					var w = new Worker("http://127.0.0.1:8080/worker.js");
+					w.onmessage = function(event) {
+						document.getElementById("info").value = movesList.length + 1 + "/" + moves.length;
+						movesList.push(event.data);
+						if(movesList.length == moves.length){
+							var maxMove;
+							var maxScore;
+							if(max){
+								maxScore = -1000000000;
+							}else{
+								maxScore = 1000000000;
+							}						
+							for(var i in movesList){
+								if((!max && movesList[i][0] < maxScore) || (max && movesList[i][0] > maxScore)){
+									maxMove = movesList[i][1];
+									maxScore = movesList[i][0];
+								}
+							}
+							
+							if(suggestion){
+								document.getElementById("info").value = "(" + maxMove.x + "." + maxMove.y + ") -> (" + maxMove.dx + "." + maxMove.dy + ")";
+							}else{
+								if(moves.length != 0){			
+									for(i in moves){
+										var move = moves[i];
+										if(move.x == maxMove.x && move.y == maxMove.y && move.dx == maxMove.dx && move.dy == maxMove.dy){
+											
+											if(mainBoard.boardGrid[move.dx][move.dy] !== null){
+												document.getElementById("info").value = mainBoard.boardGrid[move.dx][move.dy].type
+											}
+											
+											execute(mainBoard, move);
+											refreshBoard();
+											// add red markings to show what piece moved and where
+											document.getElementById(String(move.x)+String(move.y)).src = "r.png";
+											document.getElementById(String(move.dx)+String(move.dy)).src = "r" + move.piece.name + ".png";
+											break;
+										}
+									}
+									if(filteredMoves(allLegalMoves("w", mainBoard), "w", mainBoard).length == 0){
+										document.getElementById("info").value = "Hävisit!";
+									}
+									
+								}
+							}
+							isLocked = false;
+						}
+						this.terminate();
+					};
+					
+					w.postMessage([!max, dept-1, copyBoard(mainBoard), move]);
+					undo(mainBoard, move);
+				}
+				document.getElementById("info").value = "0/" + moves.length;
+			}
+		
+			function newGame(){		
+				pieces = [];
+				pieces.push(new Piece("wrook", 1, 1));
+				pieces.push(new Piece("wknight", 2, 1));
+				pieces.push(new Piece("wbishop", 3, 1));
+				pieces.push(new Piece("wqueen", 4, 1));
+				pieces.push(new Piece("wking", 5, 1));
+				pieces.push(new Piece("wbishop", 6, 1));
+				pieces.push(new Piece("wknight", 7, 1));
+				pieces.push(new Piece("wrook", 8, 1));
+			
+				pieces.push(new Piece("wpawn", 1, 2));
+				pieces.push(new Piece("wpawn", 2, 2));
+				pieces.push(new Piece("wpawn", 3, 2));
+				pieces.push(new Piece("wpawn", 4, 2));
+				pieces.push(new Piece("wpawn", 5, 2));
+				pieces.push(new Piece("wpawn", 6, 2));
+				pieces.push(new Piece("wpawn", 7, 2));
+				pieces.push(new Piece("wpawn", 8, 2));
+				
+				pieces.push(new Piece("bpawn", 1, 7));
+				pieces.push(new Piece("bpawn", 2, 7));
+				pieces.push(new Piece("bpawn", 3, 7));
+				pieces.push(new Piece("bpawn", 4, 7));
+				pieces.push(new Piece("bpawn", 5, 7));
+				pieces.push(new Piece("bpawn", 6, 7));
+				pieces.push(new Piece("bpawn", 7, 7));
+				pieces.push(new Piece("bpawn", 8, 7));
+				
+				pieces.push(new Piece("brook", 1, 8));
+				pieces.push(new Piece("bknight", 2, 8));
+				pieces.push(new Piece("bbishop", 3, 8));
+				pieces.push(new Piece("bqueen", 4, 8));
+				pieces.push(new Piece("bking", 5, 8));
+				pieces.push(new Piece("bbishop", 6, 8));
+				pieces.push(new Piece("bknight", 7, 8));
+				pieces.push(new Piece("brook", 8, 8));				
+				return pieces;
+			}
+			
+		</script>
+		
+	</head>
+	<body>
+		<table>
+			<tr>
+				<td>
+					<img src="wbrook.png" width="100" height="100" onclick="boardClick(1, 8, this);" id="18">
+				</td>
+				<td>
+					<img src="bbknight.png" width="100" height="100" onclick="boardClick(2, 8, this);" id="28">
+				</td>
+				<td>
+					<img src="wbbishop.png" width="100" height="100" onclick="boardClick(3, 8, this);" id="38">
+				</td>
+				<td>
+					<img src="bbqueen.png" width="100" height="100" onclick="boardClick(4, 8, this);" id="48">
+				</td>
+				<td>
+					<img src="wbking.png" width="100" height="100" onclick="boardClick(5, 8, this);" id="58">
+				</td>
+				<td>
+					<img src="bbbishop.png" width="100" height="100" onclick="boardClick(6, 8, this);" id="68">
+				</td>
+				<td>
+					<img src="wbknight.png" width="100" height="100" onclick="boardClick(7, 8, this);" id="78">
+				</td>
+				<td>
+					<img src="bbrook.png" width="100" height="100" onclick="boardClick(8, 8, this);" id="88">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(1, 7, this);" id="17">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(2, 7, this);" id="27">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(3, 7, this);" id="37">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(4, 7, this);" id="47">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(5, 7, this);" id="57">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(6, 7, this);" id="67">
+				</td>
+				<td>
+					<img src="bbpawn.png" width="100" height="100" onclick="boardClick(7, 7, this);" id="77">
+				</td>
+				<td>
+					<img src="wbpawn.png" width="100" height="100" onclick="boardClick(8, 7, this);" id="87">
+				</td>
+			</tr>	
+			<tr>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(1, 6, this);" id="16">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(2, 6, this);" id="26">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(3, 6, this);" id="36">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(4, 6, this);" id="46">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(5, 6, this);" id="56">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(6, 6, this);" id="66">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(7, 6, this);" id="76">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(8, 6, this);" id="86">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(1, 5, this);" id="15">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(2, 5, this);" id="25">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(3, 5, this);" id="35">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(4, 5, this);" id="45">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(5, 5, this);" id="55">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(6, 5, this);" id="65">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(7, 5, this);" id="75">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(8, 5, this);" id="85">
+				</td>
+			</tr>	
+			<tr>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(1, 4, this);" id="14">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(2, 4, this);" id="24">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(3, 4, this);" id="34">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(4, 4, this);" id="44">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(5, 4, this);" id="54">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(6, 4, this);" id="64">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(7, 4, this);" id="74">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(8, 4, this);" id="84">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(1, 3, this);" id="13">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(2, 3, this);" id="23">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(3, 3, this);" id="33">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(4, 3, this);" id="43">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(5, 3, this);" id="53">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(6, 3, this);" id="63">
+				</td>
+				<td>
+					<img src="b.png" width="100" height="100" onclick="boardClick(7, 3, this);" id="73">
+				</td>
+				<td>
+					<img src="w.png" width="100" height="100" onclick="boardClick(8, 3, this);" id="83">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(1, 2, this);" id="12">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(2, 2, this);" id="22">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(3, 2, this);" id="32">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(4, 2, this);" id="42">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(5, 2, this);" id="52">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(6, 2, this);" id="62">
+				</td>
+				<td>
+					<img src="wwpawn.png" width="100" height="100" onclick="boardClick(7, 2, this);" id="72">
+				</td>
+				<td>
+					<img src="bwpawn.png" width="100" height="100" onclick="boardClick(8, 2, this);" id="82">
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<img src="bwrook.png" width="100" height="100" onclick="boardClick(1, 1, this);" id="11">
+				</td>
+				<td>
+					<img src="wwknight.png" width="100" height="100" onclick="boardClick(2, 1, this);" id="21">
+				</td>
+				<td>
+					<img src="bwbishop.png" width="100" height="100" onclick="boardClick(3, 1, this);" id="31">
+				</td>
+				<td>
+					<img src="wwqueen.png" width="100" height="100" onclick="boardClick(4, 1, this);" id="41">
+				</td>
+				<td>
+					<img src="bwking.png" width="100" height="100" onclick="boardClick(5, 1, this);" id="51">
+				</td>
+				<td>
+					<img src="wwbishop.png" width="100" height="100" onclick="boardClick(6, 1, this);" id="61">
+				</td>
+				<td>
+					<img src="bwknight.png" width="100" height="100" onclick="boardClick(7, 1, this);" id="71">
+				</td>
+				<td>
+					<img src="wwrook.png" width="100" height="100" onclick="boardClick(8, 1, this);" id="81">
+				</td>
+			</tr>			
+		</table>
+		<input type="text" readonly="readonly" id="info" size=200 value ="Uusi peli aloitettu. Onnea!"><br>
+		<button onclick="masterUndo()">Peruuta</button><button onclick="reset()">Uusi peli</button><button onclick="suggest()">Suosittele siirtoa</button>
+</body>
+</html>
