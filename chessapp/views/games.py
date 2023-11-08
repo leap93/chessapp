@@ -38,9 +38,14 @@ def games(request):
 			board[int(move.from_square[1])][int(move.from_square[0])] = ""
 		
 		
+		fromX = request.POST.get('fromX')
+		fromY = request.POST.get('fromY')
+		toX = request.POST.get('toX')
+		toY = request.POST.get('toY')
+		
 		#execute the move if method is post
 		if request.method == 'POST':
-			if is_legal_move(board, request.POST.get('fromX'), request.POST.get('fromY'), request.POST.get('toX'), request.POST.get('toY'), player_color) and not move_causes_check(board, {"fromX": int(request.POST.get('fromX')), "fromY": int(request.POST.get('fromY')), "toX": int(request.POST.get('toX')), "toY": int(request.POST.get('toY'))}):
+			if is_legal_move(board, fromX, fromY, toX, toY, player_color) and not move_causes_check(board, {"fromX": fromX, "fromY": fromY, "toX": toX, "toY": toY}):
 				move = Move(game = game, move_date = timezone.now(), is_white = player_color == "w", from_square = request.POST.get('fromX') + request.POST.get('fromY'), to_square = request.POST.get('toX') + request.POST.get('toY'))
 				move.save()	
 				#execute the newest move

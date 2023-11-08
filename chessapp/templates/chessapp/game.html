@@ -45,12 +45,22 @@
 			return
 		}
 		
-		
 		if(selectedX == -1){
-			selectedX = x;
-			selectedY = y;
+			if(document.getElementById(x+""+y).src.includes("w.png") || document.getElementById(x+""+y).src.includes("b.png")){
+				document.getElementById("message").innerHTML = "You chose an empty square!";
+			}else{
+				selectedX = x;
+				selectedY = y;
+				document.getElementById("message").innerHTML = "";
+				
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");
+			}
+			
+
 		}else{
-		
 			// jquery extend function
 			$.extend(
 			{
@@ -68,12 +78,7 @@
 		
 			var redirect = '{{ request.path }}?id={{request.GET.id}}';
 			$.redirectPost(redirect, {fromX : selectedX.toString(), fromY: selectedY.toString(), toX: x.toString(), toY: y.toString()});
-
-			
 		}
-		
-		
-		
 	}
 </script>
-<p>{{message}}</p>
+<p id="message">{{message}}</p>

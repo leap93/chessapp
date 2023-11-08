@@ -201,6 +201,13 @@ def move_causes_check(board, move):
 	#color of the opponent
 	color = "b"
 	opponent = "w"
+	
+	move["fromX"] = int(move["fromX"])
+	move["fromY"] = int(move["fromY"])
+	move["toX"] = int(move["toX"])
+	move["toY"] = int(move["toY"])
+	
+	
 	if board[move["fromY"]][move["fromX"]][0] == "w":
 		color = "w"
 		opponent = "b"
