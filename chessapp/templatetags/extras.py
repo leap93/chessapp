@@ -1,12 +1,13 @@
 from django import template
 import numpy as np
+from chessapp.models import Game, Move
 register = template.Library()
 
 @register.filter
 def subtract(value, arg):
     return value - arg	
 	
-def is_legal_move(board, fromX, fromY, toX, toY, player_color):
+def is_legal_move(board, fromX, fromY, toX, toY, player_color, game):
 	fromX = int(fromX)
 	fromY = int(fromY)
 	toX = int(toX)
@@ -31,7 +32,7 @@ def is_legal_move(board, fromX, fromY, toX, toY, player_color):
 	elif type == "queen":
 		return isLegalMoveBishop(board, piece, destination, fromX, fromY, toX, toY) or isLegalMoveRook(board, piece, destination, fromX, fromY, toX, toY)		
 	else:
-		return isLegalMoveKing(board, piece, destination, fromX, fromY, toX, toY)
+		return isLegalMoveKing(board, piece, destination, fromX, fromY, toX, toY, game)
 	
 def isLegalMovePawn(board, piece, destination, fromX, fromY, toX, toY):	
 	if piece[0] == "w":
@@ -98,7 +99,17 @@ def isLegalMoveRook(board, piece, destination, fromX, fromY, toX, toY):
 		return False
 	return True
 
-def isLegalMoveKing(board, piece, destination, fromX, fromY, toX, toY):
+def isLegalMoveKing(board, piece, destination, fromX, fromY, toX, toY, game):
+	
+	castlings = possible_castlings(game)
+	#white long castle
+	if castlings["white_long_castle"] and board[0][1] == "" and board[0][2] == "" and board[0][3] == "" and toX == 2 and toY == 0 and piece == "wking":
+		return True
+	#white short castle
+	if castlings["white_short_castle"] and board[0][5] == "" and board[0][6] == "" and toX == 6 and toY == 0 and piece == "wking":
+		return True
+
+	
 	#check if destination has own piece
 	if destination != "" and destination[0] == piece[0]:
 		return False
@@ -133,56 +144,56 @@ def all_legal_moves(board, color):
 				else:
 					dy = y + 1
 					while dy <= 7:
-						if is_legal_move(board, x, y, x, dy, color):
+						if is_legal_move(board, x, y, x, dy, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x, "toY": dy})
 						else:
 							break
 						dy = dy + 1
 					dy = y - 1
 					while dy >= 0:
-						if is_legal_move(board, x, y, x, dy, color):
+						if is_legal_move(board, x, y, x, dy, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x, "toY": dy})
 						else:
 							break
 						dy = dy - 1
 					dx = x + 1
 					while dx <= 7:
-						if is_legal_move(board, x, y, dx, y, color):
+						if is_legal_move(board, x, y, dx, y, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": dx, "toY": y})
 						else:
 							break
 						dx = dx + 1	
 					dx = x - 1
 					while dx >= 0:
-						if is_legal_move(board, x, y, dx, y, color):
+						if is_legal_move(board, x, y, dx, y, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": dx, "toY": y})
 						else:
 							break
 						dx = dx - 1
 					d = 1 
 					while x + d <= 7 and y + d <= 7:
-						if is_legal_move(board, x, y, x + d, y + d, color):
+						if is_legal_move(board, x, y, x + d, y + d, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x + d, "toY": y + d})
 						else:
 							break
 						d = d + 1
 					d = 1 
 					while x - d >= 0 and y + d <= 7:
-						if is_legal_move(board, x, y, x - d, y + d, color):
+						if is_legal_move(board, x, y, x - d, y + d, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x - d, "toY": y + d})
 						else:
 							break
 						d = d + 1
 					d = 1	
 					while x + d <= 7 and y - d >= 0:
-						if is_legal_move(board, x, y, x + d, y - d, color):
+						if is_legal_move(board, x, y, x + d, y - d, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x + d, "toY": y - d})
 						else:
 							break
 						d = d + 1
 					d = 1	
 					while x - d >= 0 and y - d >= 0:
-						if is_legal_move(board, x, y, x - d, y - d, color):
+						if is_legal_move(board, x, y, x - d, y - d, color, None):
 							moves.append({"fromX": x, "fromY": y, "toX": x - d, "toY": y - d})
 						else:
 							break
@@ -212,9 +223,8 @@ def move_causes_check(board, move):
 		opponent = "b"
 	
 	#make the move
-	destination = board[move["toY"]][move["toX"]]
-	board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
-	board[move["fromY"]][move["fromX"]] = ""
+	destination = make_move(board, move)
+
 	
 	#check all the opponent's moves if any of them captures the king
 	king = find_king(board, color)
@@ -225,8 +235,7 @@ def move_causes_check(board, move):
 			break
 			
 	#undo the move
-	board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
-	board[move["toY"]][move["toX"]] = destination	
+	undo_move(board, move, destination)
 
 	return check
 				
@@ -248,9 +257,7 @@ def pick_move(board, color, dept):
 			continue
 		
 		#make the move
-		destination = board[move["toY"]][move["toX"]]
-		board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
-		board[move["fromY"]][move["fromX"]] = ""		
+		destination = make_move(board, move)	
 		
 		if dept == 1:
 			score = scoreBoard(board)
@@ -261,11 +268,36 @@ def pick_move(board, color, dept):
 			max_move = move
 			max_score = score
 		#undo the move
-		board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
-		board[move["toY"]][move["toX"]] = destination	
+		undo_move(board, move, destination)	
 	return (max_move, max_score)
 
 	
+def make_move(board, move):
+	destination = board[move["toY"]][move["toX"]]
+	board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
+	board[move["fromY"]][move["fromX"]] = ""
+	#white long castle
+	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "2" and move["toY"] == "0":
+		board[0][3] = board[0][0]
+		board[0][0] = ""
+	#white short castle
+	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "6" and move["toY"] == "0":
+		board[0][5] = board[0][7]
+		board[0][7] = ""
+
+	return destination
+	
+def undo_move(board, move, destination):
+	board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
+	board[move["toY"]][move["toX"]] = destination	
+	#white long castle
+	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "2" and move["toY"] == "0":
+		board[0][0] = board[0][3]
+		board[0][3] = ""	
+	#white short castle
+	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "6" and move["toY"] == "0":
+		board[0][7] = board[0][5]
+		board[0][5] = ""
 
 def scoreBoard(board):
 	score = 0
@@ -322,3 +354,29 @@ def scoreBoard(board):
 		else:
 			score = score - pointing	
 	return score
+	
+def possible_castlings(game):
+	white_short_castle = True
+	white_long_castle = True
+	black_short_castle = True
+	black_long_castle = True
+	
+	moves = Move.objects.filter(game=game)
+	
+	for move in moves:
+		if move.from_square == "00" or move.to_square == "00":
+			white_long_castle = False
+		if move.from_square == "40":
+			white_short_castle = False
+			white_long_castle = False			
+		if move.from_square == "70" or move.to_square == "70":
+			white_short_castle = False
+		if move.from_square == "07" or move.to_square == "07":
+			black_long_castle = False
+		if move.from_square == "47":
+			black_short_castle = False
+			black_long_castle = False			
+		if move.from_square == "77" or move.to_square == "77":
+			black_short_castle = False			
+	return {"white_short_castle" : white_short_castle, "white_long_castle" : white_long_castle, "black_short_castle" : black_short_castle, "black_long_castle" : black_long_castle}
+	
