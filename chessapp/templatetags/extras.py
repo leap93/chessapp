@@ -230,7 +230,7 @@ def move_causes_check(board, move):
 
 	return check
 				
-def pick_move(board, color):
+def pick_move(board, color, dept):
 
 	max_move = ""
 	max_score = 0
@@ -244,22 +244,26 @@ def pick_move(board, color):
 		max_score = 1000000000
 
 	for move in moves:
-		if move_causes_check(board, move):
+		if dept == 3 and move_causes_check(board, move):
 			continue
 		
 		#make the move
 		destination = board[move["toY"]][move["toX"]]
 		board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
 		board[move["fromY"]][move["fromX"]] = ""		
-		print(move)
-		score = scoreBoard(board)
+		
+		if dept == 1:
+			score = scoreBoard(board)
+		else:
+			score = pick_move(board, opponent, dept-1)[1]
+			
 		if (color == "w" and score > max_score) or (color == "b" and score < max_score):
 			max_move = move
 			max_score = score
 		#undo the move
 		board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
 		board[move["toY"]][move["toX"]] = destination	
-	return max_move
+	return (max_move, max_score)
 
 	
 
@@ -317,5 +321,4 @@ def scoreBoard(board):
 			score = score + pointing
 		else:
 			score = score - pointing	
-	print(score)
 	return score

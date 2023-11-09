@@ -8,7 +8,7 @@ from chessapp.templatetags.extras import is_legal_move, move_causes_check, pick_
 @login_required
 @csrf_exempt
 def games(request):
-	#moves = Move.objects.all()
+	moves = Move.objects.all()
 	#moves[len(moves)-1].delete()
 	#for move in moves:
 	#	move.delete()
@@ -36,8 +36,7 @@ def games(request):
 		for move in moves:
 			board[int(move.to_square[1])][int(move.to_square[0])] = board[int(move.from_square[1])][int(move.from_square[0])]
 			board[int(move.from_square[1])][int(move.from_square[0])] = ""
-		
-		
+			
 		fromX = request.POST.get('fromX')
 		fromY = request.POST.get('fromY')
 		toX = request.POST.get('toX')
@@ -53,11 +52,20 @@ def games(request):
 				board[int(move.from_square[1])][int(move.from_square[0])] = ""
 				#reset the moves set so it has the new move
 				moves = Move.objects.filter(game=game)
+
+				#execute CPU move
+				if game.black_player.username == "CPU":
+					opponent_move = pick_move(board, "b", 3)[0]
+					move = Move(game = game, move_date = timezone.now(), is_white = False, from_square = str(opponent_move["fromX"]) + str(opponent_move["fromY"]), to_square = str(opponent_move["toX"]) + str(opponent_move["toY"]))
+					move.save()	
+					#execute the newest move
+					board[int(move.to_square[1])][int(move.to_square[0])] = board[int(move.from_square[1])][int(move.from_square[0])]
+					board[int(move.from_square[1])][int(move.from_square[0])] = ""
+					#reset the moves set so it has the new move
+					moves = Move.objects.filter(game=game)				
+			
 			else:
 				message = "Illegal move! "
-		
-		
-		print(pick_move(board, "b"))
 		
 		#assigning square colors
 		for y in range(0,8):
@@ -72,7 +80,7 @@ def games(request):
 			board[int(lastMove.to_square[1])][int(lastMove.to_square[0])] = "r" + board[int(lastMove.to_square[1])][int(lastMove.to_square[0])][1:] 
 			board[int(lastMove.from_square[1])][int(lastMove.from_square[0])] = "r" + board[int(lastMove.from_square[1])][int(lastMove.from_square[0])][1:]
 			
-			#if the previous turn was the same color as the player
+			#if the previous turn was not from the same color as the player
 			if lastMove.is_white != (player_color == "w"):
 				message = message + "it's your turn"
 			else:

@@ -52,14 +52,21 @@
 				selectedX = x;
 				selectedY = y;
 				document.getElementById("message").innerHTML = "";
-				
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");
+
+				if(document.getElementById(x+""+y).src.includes("bishop")){
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wwbishop", "rwbishop");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bwbishop", "rwbishop");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wbbishop", "rbbishop");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bbbishop", "rbbishop");
+				}else{
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
+					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");				
+				}
+
 			}
 			
-
 		}else{
 			// jquery extend function
 			$.extend(
