@@ -34,10 +34,15 @@
 
 
 </table>
-
-
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script type="text/javascript">
+	
+	
+	
+	var moves = "{{moves}}".replaceAll("&#x27;", '"');
+	moves = JSON.parse(moves);
+	
+	
 	var selectedX = -1;
 	var selectedY = -1;
 	function boardClick(x, y){
@@ -66,6 +71,24 @@
 				}
 
 			}
+		
+		
+
+		
+		for(move in moves){
+			if(moves[move]["fromX"].toString() == x && moves[move]["fromY"].toString() == y){
+					var square = document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src
+					if(square.includes("w.png")){
+						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("w", "t");
+					}else if(square.includes("b.png")){
+						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("b", "t");
+					}else{
+						
+						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("ww", "tw").replace("bw", "tw").replace("wb", "tb").replace("bb", "tb").replace("rb", "tb").replace("rw", "tw");			
+					}							
+			}
+		}
+			
 			
 		}else{
 			// jquery extend function

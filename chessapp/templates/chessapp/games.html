@@ -3,7 +3,7 @@
 {% for game in games1 %}
 
 <div>
-<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a>
+<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a>  started {{ game.start_date }}.
 </div>
 {% empty %}
 <p>No games</p>
@@ -13,7 +13,7 @@
 {% for game in games2 %}
 
 <div>
-<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a>
+<a href="{% url 'games' %}?id={{ game.id }}">{{ game.white_player}} against {{ game.black_player }}</a> started {{ game.start_date }}.
 </div>
 {% empty %}
 <p>No games</p>
