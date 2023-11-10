@@ -1,25 +1,23 @@
 {% load static %}
 {% load extras %}
-<p>{{ game.white_player}} against {{ game.black_player }}</p><br>
+<p>{{ game.white_player}} against {{ game.black_player }} started {{ game.start_date }}.</p><br>
 {% csrf_token %}
 
 <table>
 
 
 {% if player_color == "w" %}
-
 	{% for x in board reversed %}
 		<tr>
 			{% for y in x %}
 				<td>
 				<img src="{% static y|add:'.png' %}" width="100" height="100" onclick="boardClick({{ forloop.counter0 }}, {{ 7|subtract:forloop.parentloop.counter0 }}, this);" id="{{ forloop.counter0 }}{{ 7|subtract:forloop.parentloop.counter0 }}">
 				</td>
-				{% endfor %}
+			{% endfor %}
 		</tr>
 	{% endfor %}
 
 {% else %}
-
 	{% for x in board %}
 		<tr>
 		{% for y in x reversed %}
@@ -29,16 +27,11 @@
 		{% endfor %}
 		</tr>
 	{% endfor %}
-
 {% endif %}
-
 
 </table>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script type="text/javascript">
-	
-	
-	
 	var moves = "{{moves}}".replaceAll("&#x27;", '"');
 	moves = JSON.parse(moves);
 	
@@ -50,47 +43,78 @@
 			return
 		}
 		
-		if(selectedX == -1){
-			if(document.getElementById(x+""+y).src.includes("w.png") || document.getElementById(x+""+y).src.includes("b.png")){
-				document.getElementById("message").innerHTML = "You chose an empty square!";
-			}else{
-				selectedX = x;
-				selectedY = y;
-				document.getElementById("message").innerHTML = "";
-
-				if(document.getElementById(x+""+y).src.includes("bishop")){
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wwbishop", "rwbishop");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bwbishop", "rwbishop");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wbbishop", "rbbishop");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bbbishop", "rbbishop");
-				}else{
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
-					document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");				
-				}
-
-			}
 		
-		
-
-		
+		//check if the piece in the square has legal moves
+		var is_legal_selection = false;
 		for(move in moves){
-			if(moves[move]["fromX"].toString() == x && moves[move]["fromY"].toString() == y){
-					var square = document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src
-					if(square.includes("w.png")){
-						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("w", "t");
-					}else if(square.includes("b.png")){
-						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("b", "t");
-					}else{
-						
-						document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("ww", "tw").replace("bw", "tw").replace("wb", "tb").replace("bb", "tb").replace("rb", "tb").replace("rw", "tw");			
-					}							
+			if(moves[move]["fromX"] == x && moves[move]["fromY"] == y){
+				is_legal_selection = true;
 			}
-		}
 			
-			
+		}		
+		
+		//empty square selected
+		if(document.getElementById(x+""+y).src.includes("w.png") || document.getElementById(x+""+y).src.includes("b.png")){
+			document.getElementById("message").innerHTML = "You chose an empty square!";		
+		//piece with no legal moves selected
+		}else if(selectedX == -1 && !is_legal_selection){
+			document.getElementById("message").innerHTML = "This piece has no legal moves";	
+		//first selection
+		}else if(selectedX == -1){
+			//reset red squares
+			for(var a = 0; a < 8; a++){
+				for(var b = 0; b < 8; b++){
+					var square = document.getElementById(a+""+b).src;
+					if(square.includes("r.png")){
+						document.getElementById(a+""+b).src = square.replace("r", boardColor(a, b));
+					}else if(square.includes("rwbishop")){
+						document.getElementById(a+""+b).src = square.replace("rwbishop", boardColor(a, b) + "wbishop");
+					}else if(square.includes("rbbishop")){
+						document.getElementById(a+""+b).src = square.replace("rbbishop", boardColor(a, b) + "bbishop");
+					}else if(square.includes("rb")){
+						document.getElementById(a+""+b).src = square.replace("rb", boardColor(a, b) + "b");
+					}else if(square.includes("rw")){
+						document.getElementById(a+""+b).src = square.replace("rw", boardColor(a, b) + "w");
+					}	
+				}		
+			}		
+		
+			selectedX = x;
+			selectedY = y;
+			//highligh the selected piece with red
+			if(document.getElementById(x+""+y).src.includes("bishop")){
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wwbishop", "rwbishop");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bwbishop", "rwbishop");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wbbishop", "rbbishop");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bbbishop", "rbbishop");
+			}else{
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
+				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");				
+			}
+
+			//highlight possible moves with blue
+			for(move in moves){
+				if(moves[move]["fromX"].toString() == x && moves[move]["fromY"].toString() == y){
+						var square = document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src;
+						if(square.includes("bishop")){
+							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("wwbishop", "twbishop").replace("bwbishop", "twbishop").replace("wbbishop", "tbbishop").replace("bbbishop", "tbbishop").replace("rbbishop", "tbbishop").replace("rwbishop", "twbishop");
+						}else if(square.includes("b.png")){
+							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("b", "t");
+						}else if(square.includes("w.png")){
+							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("w", "t");
+						}else{
+							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("ww", "tw").replace("bw", "tw").replace("wb", "tb").replace("bb", "tb").replace("rb", "tb").replace("rw", "tw");			
+						}							
+				}
+			}
+			document.getElementById("message").innerHTML = "Please select the destination.";
+		
+		//second selection
 		}else{
+			
+			document.getElementById("message").innerHTML = "Waiting for oppoent's move...";
 			// jquery extend function
 			$.extend(
 			{
@@ -104,11 +128,22 @@
 					$('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();
 				}
 			});			
-		
+			
+			
 		
 			var redirect = '{{ request.path }}?id={{request.GET.id}}';
 			$.redirectPost(redirect, {fromX : selectedX.toString(), fromY: selectedY.toString(), toX: x.toString(), toY: y.toString()});
 		}
 	}
+	
+	//square color based on it's coordinates
+	function boardColor(x, y){
+		if( (y%2==1 && x%2 == 1) || (y%2==0 && x%2 == 0) ){
+			return "b";
+		}else{
+			return "w";
+		}
+	}	
+	
 </script>
 <p id="message">{{message}}</p>
