@@ -19,10 +19,10 @@ def games(request):
 	if id is not None:
 		game = Game.objects.filter(id = id)[0]
 		player_color = "b"
-		cpu_color = "w"
+		opponent_color = "w"
 		if game.white_player == request.user:
 			player_color = "w"
-			cpu_color = "b"
+			opponent_color = "b"
 		#Initializing board from the start. Board index goes from 0 to 7 and y comes before x
 		board = [["wrook", "wknight", "wbishop", "wqueen", "wking", "wbishop", "wknight", "wrook"]]
 		board.insert(2, ["wpawn", "wpawn", "wpawn", "wpawn", "wpawn", "wpawn", "wpawn", "wpawn"])
@@ -51,7 +51,7 @@ def games(request):
 
 				#execute CPU move
 				if game.black_player.username == "CPU" or game.white_player.username == "CPU":
-					opponent_move = pick_move(board, cpu_color, 3)[0]
+					opponent_move = pick_move(board, opponent_color, 3)[0]
 					move = Move(game = game, move_date = timezone.now(), is_white = player_color != "w", from_square = str(opponent_move["fromX"]) + str(opponent_move["fromY"]), to_square = str(opponent_move["toX"]) + str(opponent_move["toY"]))
 					move.save()	
 					#execute the newest move to the board
@@ -63,12 +63,21 @@ def games(request):
 			else:
 				message = "Illegal move! "
 		
-		
+		#gather all possible moves for the player
 		all_possible_moves = all_legal_moves(board, player_color)
 		filetered_moves = []
 		for move in all_possible_moves:
 			if not move_causes_check(board, move):
 				filetered_moves.append(move)
+		
+		#game ends to a defeat
+		if len(filetered_moves) == 0 and game.end_date == None:
+			game.end_date = timezone.now()
+			if opponent_color == "w":
+				game.winner = game.white_player 
+			else:
+				game.winner = game.black_player
+			game.save()
 		
 		#assigning square colors
 		for y in range(0,8):
@@ -85,7 +94,11 @@ def games(request):
 			
 			#if the previous turn was not from the same color as the player
 			if lastMove.is_white != (player_color == "w"):
-				message = message + "it's your turn"
+				if len(filetered_moves) == 0:
+					message = "This game is over. You lost!"
+					players_turn = False
+				else:
+					message = message + "it's your turn"
 			else:
 				message = "waiting for oppoent's move..."
 				players_turn = False
@@ -98,7 +111,9 @@ def games(request):
 	else:
 		games1 = Game.objects.filter(white_player=request.user, end_date__isnull=True)
 		games2 = Game.objects.filter(black_player=request.user, end_date__isnull=True)
-		return render(request, 'chessapp/games.html', {"games1" : games1, "games2" : games2})	
+		games3 = Game.objects.filter(white_player=request.user, end_date__isnull=False)
+		games4 = Game.objects.filter(black_player=request.user, end_date__isnull=False)		
+		return render(request, 'chessapp/games.html', {"games1" : games1, "games2" : games2, "games3" : games3, "games4" : games4})	
 		
 def squareColor(x, y):
 	if (y%2==1 and x%2 == 1) or (y%2==0 and x%2 == 0):

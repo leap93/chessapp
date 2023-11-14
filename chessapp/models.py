@@ -7,7 +7,8 @@ class Game(models.Model):
 	black_player = models.ForeignKey(User, related_name="black", on_delete=models.CASCADE)
 	start_date = models.DateTimeField()
 	end_date = models.DateTimeField(null=True)
-	ended_by_forfeit = models.BooleanField(null=True)
+	ended_by_forfeit = models.BooleanField(null=True, default=False)
+	winner = models.ForeignKey(User, related_name="winner", on_delete=models.CASCADE, null=True)
 	
 class Move(models.Model):
 	game = models.ForeignKey(Game, on_delete=models.CASCADE)
