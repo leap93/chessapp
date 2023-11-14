@@ -1,3 +1,5 @@
+<a href="{% url 'games' %}">back to games</a>
+
 <form method="POST", action="{% url 'new_game' %}">
 {% csrf_token %}
 

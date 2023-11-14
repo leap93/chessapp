@@ -1,5 +1,6 @@
 {% load static %}
 {% load extras %}
+<a href="{% url 'games' %}">back to games</a>
 <p>{{ game.white_player}} against {{ game.black_player }} started {{ game.start_date }}.</p><br>
 {% csrf_token %}
 
