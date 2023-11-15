@@ -33,17 +33,20 @@
 </table>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script type="text/javascript">
+	var lastMoveFrom = "{{last_move.from_square}}";
+	var lastMoveTo = "{{last_move.to_square}}";
+	//hihglight opponent's move
+	highlightSquare(lastMoveFrom, "r");
+	highlightSquare(lastMoveTo, "r");
+	var playersTurn = "{{players_turn}}"=="False";
 	var moves = "{{moves}}".replaceAll("&#x27;", '"');
 	moves = JSON.parse(moves);
-	
-	
 	var selectedX = -1;
 	var selectedY = -1;
 	function boardClick(x, y){
-		if("{{players_turn}}"=="False"){
+		if(playersTurn){
 			return
 		}
-		
 		
 		//check if the piece in the square has legal moves
 		var is_legal_selection = false;
@@ -51,11 +54,10 @@
 			if(moves[move]["fromX"] == x && moves[move]["fromY"] == y){
 				is_legal_selection = true;
 			}
-			
 		}		
 		
-		//empty square selected
-		if(document.getElementById(x+""+y).src.includes("w.png") || document.getElementById(x+""+y).src.includes("b.png")){
+		//empty square selected as the first selection
+		if(selectedX == -1 && (document.getElementById(x+""+y).src.includes("w.png") || document.getElementById(x+""+y).src.includes("b.png"))){
 			document.getElementById("message").innerHTML = "You chose an empty square!";		
 		//piece with no legal moves selected
 		}else if(selectedX == -1 && !is_legal_selection){
@@ -63,77 +65,59 @@
 		//first selection
 		}else if(selectedX == -1){
 			//reset red squares
-			for(var a = 0; a < 8; a++){
-				for(var b = 0; b < 8; b++){
-					var square = document.getElementById(a+""+b).src;
-					if(square.includes("r.png")){
-						document.getElementById(a+""+b).src = square.replace("r", boardColor(a, b));
-					}else if(square.includes("rwbishop")){
-						document.getElementById(a+""+b).src = square.replace("rwbishop", boardColor(a, b) + "wbishop");
-					}else if(square.includes("rbbishop")){
-						document.getElementById(a+""+b).src = square.replace("rbbishop", boardColor(a, b) + "bbishop");
-					}else if(square.includes("rb")){
-						document.getElementById(a+""+b).src = square.replace("rb", boardColor(a, b) + "b");
-					}else if(square.includes("rw")){
-						document.getElementById(a+""+b).src = square.replace("rw", boardColor(a, b) + "w");
-					}	
-				}		
-			}		
+			removeHighlights()
 		
 			selectedX = x;
 			selectedY = y;
 			//highligh the selected piece with red
-			if(document.getElementById(x+""+y).src.includes("bishop")){
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wwbishop", "rwbishop");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bwbishop", "rwbishop");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wbbishop", "rbbishop");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bbbishop", "rbbishop");
-			}else{
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("ww", "rw");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bw", "rw");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("wb", "rb");
-				document.getElementById(x+""+y).src = document.getElementById(x+""+y).src.replace("bb", "rb");				
-			}
+			highlightSquare(x+""+y, "r");
 
 			//highlight possible moves with blue
 			for(move in moves){
 				if(moves[move]["fromX"].toString() == x && moves[move]["fromY"].toString() == y){
-						var square = document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src;
-						if(square.includes("bishop")){
-							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("wwbishop", "twbishop").replace("bwbishop", "twbishop").replace("wbbishop", "tbbishop").replace("bbbishop", "tbbishop").replace("rbbishop", "tbbishop").replace("rwbishop", "twbishop");
-						}else if(square.includes("b.png")){
-							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("b", "t");
-						}else if(square.includes("w.png")){
-							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("w", "t");
-						}else{
-							document.getElementById(moves[move]["toX"]+""+moves[move]["toY"]).src = square.replace("ww", "tw").replace("bw", "tw").replace("wb", "tb").replace("bb", "tb").replace("rb", "tb").replace("rw", "tw");			
-						}							
+						highlightSquare(moves[move]["toX"]+""+moves[move]["toY"], "t");						
 				}
 			}
 			document.getElementById("message").innerHTML = "Please select the destination.";
 		
 		//second selection
 		}else{
-			
-			document.getElementById("message").innerHTML = "Waiting for oppoent's move...";
-			// jquery extend function
-			$.extend(
-			{
-				redirectPost: function(location, args)
-				{
-					var form = '';
-					$.each( args, function( key, value ) {
-						value = value.split('"').join('\"')
-						form += '<input type="hidden" name="'+key+'" value="'+value+'">';
-					});
-					$('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();
+			var isLegalMove = false;
+			for(move in moves){
+				if(moves[move]["fromX"] == selectedX && moves[move]["fromY"] == selectedY && moves[move]["toX"].toString() == x && moves[move]["toY"].toString() == y){
+					isLegalMove = true;
+					break;
 				}
-			});			
+			}		
+			if(isLegalMove){
+				playersTurn = false;
+				document.getElementById("message").innerHTML = "Waiting for oppoent's move...";
+				// jquery extend function
+				$.extend(
+				{
+					redirectPost: function(location, args)
+					{
+						var form = '';
+						$.each( args, function( key, value ) {
+							value = value.split('"').join('\"')
+							form += '<input type="hidden" name="'+key+'" value="'+value+'">';
+						});
+						$('<form action="' + location + '" method="POST">' + form + '</form>').appendTo($(document.body)).submit();
+					}
+				});			
 			
-			
-		
-			var redirect = '{{ request.path }}?id={{request.GET.id}}';
-			$.redirectPost(redirect, {fromX : selectedX.toString(), fromY: selectedY.toString(), toX: x.toString(), toY: y.toString()});
+				var redirect = '{{ request.path }}?id={{request.GET.id}}';
+				$.redirectPost(redirect, {fromX : selectedX.toString(), fromY: selectedY.toString(), toX: x.toString(), toY: y.toString()});
+			}else{
+				document.getElementById("message").innerHTML = "Illegal move!";
+				//unhighlight the possible moves
+				removeHighlights();
+				//highlight opponent's move
+				highlightSquare(lastMoveFrom, "r");
+				highlightSquare(lastMoveTo, "r");
+				selectedX = -1;
+				selectedY = -1;					
+			}
 		}
 	}
 	
@@ -145,6 +129,60 @@
 			return "w";
 		}
 	}	
+	
+	function removeHighlights(){
+		for(var a = 0; a < 8; a++){
+			for(var b = 0; b < 8; b++){
+				var square = document.getElementById(a+""+b).src;
+				if(square.includes("r.png")){
+					document.getElementById(a+""+b).src = square.replace("r", boardColor(a, b));
+				}else if(square.includes("rwbishop")){
+					document.getElementById(a+""+b).src = square.replace("rwbishop", boardColor(a, b) + "wbishop");
+				}else if(square.includes("rbbishop")){
+					document.getElementById(a+""+b).src = square.replace("rbbishop", boardColor(a, b) + "bbishop");
+				}else if(square.includes("rb")){
+					document.getElementById(a+""+b).src = square.replace("rb", boardColor(a, b) + "b");
+				}else if(square.includes("rw")){
+					document.getElementById(a+""+b).src = square.replace("rw", boardColor(a, b) + "w");
+				}else if(square.includes("t.png") && !square.includes("knight.png")){
+					document.getElementById(a+""+b).src = square.replace("t.png", boardColor(a, b) + ".png");
+				}else if(square.includes("twbishop")){
+					document.getElementById(a+""+b).src = square.replace("twbishop", boardColor(a, b) + "wbishop");
+				}else if(square.includes("tbbishop")){
+					document.getElementById(a+""+b).src = square.replace("tbbishop", boardColor(a, b) + "bbishop");
+				}else if(square.includes("tb")){
+					document.getElementById(a+""+b).src = square.replace("tb", boardColor(a, b) + "b");
+				}else if(square.includes("tw")){
+					document.getElementById(a+""+b).src = square.replace("tw", boardColor(a, b) + "w");
+				}	
+			}		
+		}		
+	}
+	
+	function highlightSquare(xy, color){
+		var square = document.getElementById(xy).src
+		if(square.includes("w.png")){
+			document.getElementById(xy).src = square.replace("w", color);
+		}else if(square.includes("b.png")){
+			document.getElementById(xy).src = square.replace("b", color);
+		}else if(square.includes("wwbishop")){
+			document.getElementById(xy).src = square.replace("wwbishop", color + "wbishop");
+		}else if(square.includes("wbbishop")){
+			document.getElementById(xy).src = square.replace("wbbishop", color + "bbishop");
+		}else if(square.includes("bwbishop")){
+			document.getElementById(xy).src = square.replace("bwbishop", color + "wbishop");
+		}else if(square.includes("bbbishop")){
+			document.getElementById(xy).src = square.replace("bbbishop", color + "bbishop");
+		}else if(square.includes("wb")){
+			document.getElementById(xy).src = square.replace("wb", color + "b");
+		}else if(square.includes("ww")){
+			document.getElementById(xy).src = square.replace("ww", color + "w");
+		}else if(square.includes("bb")){
+			document.getElementById(xy).src = square.replace("bb", color + "b");
+		}else if(square.includes("bw")){
+			document.getElementById(xy).src = square.replace("bw", color + "w");
+		}	
+	}
 	
 </script>
 <p id="message">{{message}}</p>

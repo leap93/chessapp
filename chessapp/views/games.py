@@ -95,16 +95,9 @@ def games(request):
 				board[y][x] =  squareColor(y, x) + board[y][x]
 		
 		players_turn = True
-
-
-
-
-
+		lastMove = ""
 		if len(moves) > 0:
 			lastMove = moves[len(moves)-1]
-			#marking the last move with red squares
-			board[int(lastMove.to_square[1])][int(lastMove.to_square[0])] = "r" + board[int(lastMove.to_square[1])][int(lastMove.to_square[0])][1:] 
-			board[int(lastMove.from_square[1])][int(lastMove.from_square[0])] = "r" + board[int(lastMove.from_square[1])][int(lastMove.from_square[0])][1:]
 
 			#game has ended
 			if not game.end_date == None:
@@ -125,7 +118,7 @@ def games(request):
 		else:
 			message = "waiting for oppoent's move..."
 			players_turn = False
-		return render(request, 'chessapp/game.html', {"game" : game, "board" : board, "message" : message, "players_turn": players_turn, "player_color": player_color, "moves": filetered_moves})
+		return render(request, 'chessapp/game.html', {"game" : game, "board" : board, "message" : message, "players_turn": players_turn, "player_color": player_color, "moves": filetered_moves, "last_move" : lastMove})
 	else:
 		games1 = Game.objects.filter(white_player=request.user, end_date__isnull=True)
 		games2 = Game.objects.filter(black_player=request.user, end_date__isnull=True)
