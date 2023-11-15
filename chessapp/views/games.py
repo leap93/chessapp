@@ -17,7 +17,8 @@ def games(request):
 	id = request.GET.get('id')
 	
 	if id is not None:
-		game = Game.objects.filter(id = id)[0]
+		game = Game.objects.filter(id = id)[0]		
+		
 		player_color = "b"
 		opponent_color = "w"
 		if game.white_player == request.user:
@@ -52,12 +53,21 @@ def games(request):
 				#execute CPU move
 				if game.black_player.username == "CPU" or game.white_player.username == "CPU":
 					opponent_move = pick_move(board, opponent_color, 3)[0]
-					move = Move(game = game, move_date = timezone.now(), is_white = player_color != "w", from_square = str(opponent_move["fromX"]) + str(opponent_move["fromY"]), to_square = str(opponent_move["toX"]) + str(opponent_move["toY"]))
-					move.save()	
-					#execute the newest move to the board
-					execute_move(board, move)
-				
-				#reset the moves set so it has the new move
+					
+					#CPU has no legal moves -> victory
+					if opponent_move == "":
+						game.end_date = timezone.now()
+						if player_color == "w":
+							game.winner = game.white_player 
+						else:
+							game.winner = game.black_player
+						game.save()					
+					else:
+						move = Move(game = game, move_date = timezone.now(), is_white = player_color != "w", from_square = str(opponent_move["fromX"]) + str(opponent_move["fromY"]), to_square = str(opponent_move["toX"]) + str(opponent_move["toY"]))
+						move.save()	
+						#execute the newest move to the board
+						execute_move(board, move)
+				#reset the moves set so it has the new move(s)
 				moves = Move.objects.filter(game=game)				
 			
 			else:
@@ -85,20 +95,28 @@ def games(request):
 				board[y][x] =  squareColor(y, x) + board[y][x]
 		
 		players_turn = True
+
+
+
+
+
 		if len(moves) > 0:
 			lastMove = moves[len(moves)-1]
-			
 			#marking the last move with red squares
 			board[int(lastMove.to_square[1])][int(lastMove.to_square[0])] = "r" + board[int(lastMove.to_square[1])][int(lastMove.to_square[0])][1:] 
 			board[int(lastMove.from_square[1])][int(lastMove.from_square[0])] = "r" + board[int(lastMove.from_square[1])][int(lastMove.from_square[0])][1:]
-			
-			#if the previous turn was not from the same color as the player
-			if lastMove.is_white != (player_color == "w"):
-				if len(filetered_moves) == 0:
-					message = "This game is over. You lost!"
-					players_turn = False
+
+			#game has ended
+			if not game.end_date == None:
+				players_turn = False
+				if game.winner == request.user:
+					message = "This game is over. You won!"	
 				else:
-					message = message + "it's your turn"
+					message = "This game is over. You lost!"	
+			#player's turn
+			elif lastMove.is_white != (player_color == "w"):
+				message = message + "it's your turn"
+			#opponent's turn
 			else:
 				message = "waiting for oppoent's move..."
 				players_turn = False
