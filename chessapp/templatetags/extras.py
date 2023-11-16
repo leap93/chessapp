@@ -253,7 +253,7 @@ def pick_move(board, color, dept):
 		max_score = 1000000000
 
 	for move in moves:
-		if dept == 3 and move_causes_check(board, move):
+		if dept == 1 and move_causes_check(board, move):
 			continue
 		
 		#make the move

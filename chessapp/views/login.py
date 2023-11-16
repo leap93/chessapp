@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as loginuser
 
@@ -15,7 +15,7 @@ def login(request):
 			if next != '':
 				return render(request, next[1:]+'.html')
 			else:
-				return render(request, 'chessapp/login_success.html')
+				return redirect("/chessapp/games")
 		else:
 			return render(request, 'chessapp/login.html', {'username' : username, 'message' : 'Invalid username or password', 'next' : request.POST['next']})
 	

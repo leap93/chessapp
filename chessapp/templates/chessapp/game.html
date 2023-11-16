@@ -36,8 +36,11 @@
 	var lastMoveFrom = "{{last_move.from_square}}";
 	var lastMoveTo = "{{last_move.to_square}}";
 	//hihglight opponent's move
-	highlightSquare(lastMoveFrom, "r");
-	highlightSquare(lastMoveTo, "r");
+	
+	if(!lastMoveFrom == ""){
+		highlightSquare(lastMoveFrom, "r");
+		highlightSquare(lastMoveTo, "r");
+	}
 	var playersTurn = "{{players_turn}}"=="False";
 	var moves = "{{moves}}".replaceAll("&#x27;", '"');
 	moves = JSON.parse(moves);

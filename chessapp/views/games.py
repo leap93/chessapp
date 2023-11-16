@@ -52,7 +52,7 @@ def games(request):
 
 				#execute CPU move
 				if game.black_player.username == "CPU" or game.white_player.username == "CPU":
-					opponent_move = pick_move(board, opponent_color, 3)[0]
+					opponent_move = pick_move(board, opponent_color, 1)[0]
 					
 					#CPU has no legal moves -> victory
 					if opponent_move == "":
@@ -144,4 +144,9 @@ def execute_move(board, move):
 	if move.from_square[0] == "4" and move.from_square[1] == "0" and move.to_square[0] == "6" and move.to_square[1] == "0":
 		board[0][5] = board[0][7]
 		board[0][7] = ""
-			
+	#black pawn to queen
+	if move.from_square[1] == "1" and move.to_square[1] == "0" and board[int(move.to_square[1])][int(move.to_square[0])] == "bpawn":
+		board[int(move.to_square[1])][int(move.to_square[0])] = "bqueen"
+	#white pawn to queen
+	if move.from_square[1] == "6" and move.to_square[1] == "7" and board[int(move.to_square[1])][int(move.to_square[0])] == "wpawn":
+		board[int(move.to_square[1])][int(move.to_square[0])] = "wqueen"
