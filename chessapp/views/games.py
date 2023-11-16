@@ -52,7 +52,7 @@ def games(request):
 
 				#execute CPU move
 				if game.black_player.username == "CPU" or game.white_player.username == "CPU":
-					opponent_move = pick_move(board, opponent_color, 1)[0]
+					opponent_move = pick_move(board, opponent_color, 3)[0]
 					
 					#CPU has no legal moves -> victory
 					if opponent_move == "":

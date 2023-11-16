@@ -1,5 +1,5 @@
 from django.test import TestCase
-from chessapp.templatetags.extras import is_legal_move, move_causes_check, pick_move, possible_castlings, all_legal_moves
+from chessapp.templatetags.extras import *
 from chessapp.models import Game, Move
 from django.utils import timezone
 from django.contrib.auth.models import User
@@ -11,6 +11,12 @@ def start_board():
 		board.insert(x, [ "", "", "", "", "", "", "", ""])
 	board.insert(6, ["bpawn", "bpawn", "bpawn", "bpawn", "bpawn", "bpawn", "bpawn", "bpawn"])
 	board.insert(7, ["brook", "bknight", "bbishop", "bqueen", "bking", "bbishop", "bknight", "brook"])
+	return board
+
+def empty_board():
+	board = []
+	for x in range(0,8):
+		board.insert(x, [ "", "", "", "", "", "", "", ""])
 	return board
 
 class TestPawnLegalMoves(TestCase):
@@ -148,17 +154,62 @@ class TestKingLegalMoves(TestCase):
 		
 class TestAllMovesGeneration(TestCase):
 		
+	#all moves with the initial board
 	def test_all_moves_1(self):
 		board = start_board()
 		self.assertEquals(len(all_legal_moves(board, "w")), 20)
 
+	#all moves with inital board and pawn taken out at E2
 	def test_all_moves_2(self):
 		board = start_board()
 		board[1][4] = ""
 		self.assertEquals(len(all_legal_moves(board, "w")), 29)	
-		
+	
+	#all moves with inital board and pawn taken out at A2 and D2
 	def test_all_moves_3(self):
 		board = start_board()
 		board[1][0] = ""
 		board[1][3] = ""
-		self.assertEquals(len(all_legal_moves(board, "w")), 35)			
+		self.assertEquals(len(all_legal_moves(board, "w")), 35)		
+
+class TestKingFinder(TestCase):
+	
+	#king in the starting position
+	def test_king_finder_1(self):
+		board = start_board()
+		self.assertEquals(find_king(board, "w"), {"x" : 4, "y": 0})
+
+	#king in the middle of the board
+	def test_king_finder_2(self):
+		board = start_board()
+		board[4][4] = "wking"
+		board[0][4] = ""
+		self.assertEquals(find_king(board, "w"), {"x" : 4, "y": 4})	
+
+class TestCheckChecker(TestCase):
+	
+	#move that does not cause check
+	def aatest_check_checker_1(self):
+		board = empty_board()
+		board[4][4] = "wking"
+		board[7][7] = "bking"
+		board[7][6] = "bqueen"
+		self.assertFalse(move_causes_check(board, {"fromX": 4, "fromY": 4, "toX": 5, "toY": 5}))
+
+	#move that causes check 1 
+	def aatest_check_checker_2(self):
+		board = empty_board()
+		board[4][4] = "wking"
+		board[7][7] = "bking"
+		board[7][5] = "bqueen"
+		self.assertTrue(move_causes_check(board, {"fromX": 4, "fromY": 4, "toX": 5, "toY": 5}))
+
+	#move that causes check 2 
+	def test_check_checker_2(self):
+		board = empty_board()
+		board[4][4] = "wking"
+		board[4][5] = "wknight"
+		board[7][7] = "bking"
+		board[4][6] = "bqueen"
+		self.assertTrue(move_causes_check(board, {"fromX": 5, "fromY": 4, "toX": 3, "toY": 3}))
+		
