@@ -277,11 +277,11 @@ def make_move(board, move):
 	board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
 	board[move["fromY"]][move["fromX"]] = ""
 	#white long castle
-	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "2" and move["toY"] == "0":
+	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 2 and move["toY"] == 0:
 		board[0][3] = board[0][0]
 		board[0][0] = ""
 	#white short castle
-	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "6" and move["toY"] == "0":
+	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 6 and move["toY"] == 0:
 		board[0][5] = board[0][7]
 		board[0][7] = ""
 
@@ -291,11 +291,11 @@ def undo_move(board, move, destination):
 	board[move["fromY"]][move["fromX"]] = board[move["toY"]][move["toX"]]
 	board[move["toY"]][move["toX"]] = destination	
 	#white long castle
-	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "2" and move["toY"] == "0":
+	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 2 and move["toY"] == 0:
 		board[0][0] = board[0][3]
 		board[0][3] = ""	
 	#white short castle
-	if move["fromX"] == "4" and move["fromY"] == "0" and move["toX"] == "6" and move["toY"] == "0":
+	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 6 and move["toY"] == 0:
 		board[0][7] = board[0][5]
 		board[0][5] = ""
 

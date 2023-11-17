@@ -189,7 +189,7 @@ class TestKingFinder(TestCase):
 class TestCheckChecker(TestCase):
 	
 	#move that does not cause check
-	def aatest_check_checker_1(self):
+	def test_check_checker_1(self):
 		board = empty_board()
 		board[4][4] = "wking"
 		board[7][7] = "bking"
@@ -197,7 +197,7 @@ class TestCheckChecker(TestCase):
 		self.assertFalse(move_causes_check(board, {"fromX": 4, "fromY": 4, "toX": 5, "toY": 5}))
 
 	#move that causes check 1 
-	def aatest_check_checker_2(self):
+	def test_check_checker_2(self):
 		board = empty_board()
 		board[4][4] = "wking"
 		board[7][7] = "bking"
@@ -205,11 +205,76 @@ class TestCheckChecker(TestCase):
 		self.assertTrue(move_causes_check(board, {"fromX": 4, "fromY": 4, "toX": 5, "toY": 5}))
 
 	#move that causes check 2 
-	def test_check_checker_2(self):
+	def test_check_checker_3(self):
 		board = empty_board()
 		board[4][4] = "wking"
 		board[4][5] = "wknight"
 		board[7][7] = "bking"
 		board[4][6] = "bqueen"
 		self.assertTrue(move_causes_check(board, {"fromX": 5, "fromY": 4, "toX": 3, "toY": 3}))
+	
+class TestMoveMaker(TestCase):
+
+	#move 1 
+	def test_move_maker_1(self):
+		board = start_board()
+		make_move(board, {"fromX": 1, "fromY": 0, "toX": 2, "toY": 2})
+		self.assertEquals(board[2][2], "wknight")
+		self.assertEquals(board[0][1], "")
+		
+	#move 2 
+	def test_move_maker_2(self):
+		board = start_board()
+		board[4][4] = "wrook"
+		make_move(board, {"fromX": 4, "fromY": 4, "toX": 4, "toY": 6})
+		self.assertEquals(board[6][4], "wrook")
+		self.assertEquals(board[4][4], "")
+		
+	#short castling white
+	def test_move_maker_3(self):
+		board = start_board()
+		board[0][5] = ""
+		board[0][6] = ""
+		make_move(board, {"fromX": 4, "fromY": 0, "toX": 6, "toY": 0})
+		self.assertEquals(board[0][4], "")
+		self.assertEquals(board[0][5], "wrook")
+		self.assertEquals(board[0][6], "wking")
+		self.assertEquals(board[0][7], "")	
+		
+	#long castling white
+	def test_move_maker_4(self):
+		board = start_board()
+		board[0][1] = ""
+		board[0][2] = ""
+		board[0][3] = ""
+		make_move(board, {"fromX": 4, "fromY": 0, "toX": 2, "toY": 0})
+		self.assertEquals(board[0][0], "")
+		self.assertEquals(board[0][1], "")
+		self.assertEquals(board[0][2], "wking")
+		self.assertEquals(board[0][3], "wrook")			
+		self.assertEquals(board[0][4], "")
+		
+	#short castling black
+	def test_move_maker_5(self):
+		board = start_board()
+		board[7][5] = ""
+		board[7][6] = ""
+		make_move(board, {"fromX": 4, "fromY": 7, "toX": 6, "toY": 7})
+		self.assertEquals(board[7][4], "")
+		self.assertEquals(board[7][5], "brook")
+		self.assertEquals(board[7][6], "bking")
+		self.assertEquals(board[7][7], "")	
+		
+	#long castling black
+	def test_move_maker_6(self):
+		board = start_board()
+		board[7][1] = ""
+		board[7][2] = ""
+		board[7][3] = ""
+		make_move(board, {"fromX": 4, "fromY": 7, "toX": 2, "toY": 7})
+		self.assertEquals(board[7][0], "")
+		self.assertEquals(board[7][1], "")
+		self.assertEquals(board[7][2], "bking")
+		self.assertEquals(board[7][3], "brook")			
+		self.assertEquals(board[7][4], "")		
 		
