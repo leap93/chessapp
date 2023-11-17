@@ -277,4 +277,126 @@ class TestMoveMaker(TestCase):
 		self.assertEquals(board[7][2], "bking")
 		self.assertEquals(board[7][3], "brook")			
 		self.assertEquals(board[7][4], "")		
+
+	#white pawn into queen 
+	def test_move_maker_7(self):
+		board = start_board()
+		board[6][0] = "wpawn"
+		board[6][1] = ""
+		board[7][0] = ""
+		board[7][1] = ""
+		
+		make_move(board, {"fromX": 0, "fromY": 6, "toX": 0, "toY": 7})
+		self.assertEquals(board[7][0], "wqueen")
+		self.assertEquals(board[6][0], "")
+
+	#black pawn into queen 
+	def test_move_maker_8(self):
+		board = start_board()
+		board[1][0] = "bpawn"
+		board[1][1] = ""
+		board[0][0] = ""
+		board[0][1] = ""
+		
+		make_move(board, {"fromX": 0, "fromY": 1, "toX": 0, "toY": 0})
+		self.assertEquals(board[0][0], "bqueen")
+		self.assertEquals(board[1][0], "")
+		
+class TestMoveUnmaker(TestCase):
+
+	#move 1 
+	def test_move_unmaker_1(self):
+		board = start_board()
+		destination = make_move(board, {"fromX": 1, "fromY": 0, "toX": 2, "toY": 2})
+		undo_move(board, {"fromX": 1, "fromY": 0, "toX": 2, "toY": 2}, destination)
+		self.assertEquals(board[2][2], "")
+		self.assertEquals(board[0][1], "wknight")
+		
+	#move 2 
+	def test_move_unmaker_2(self):
+		board = start_board()
+		board[4][4] = "wrook"
+		destination = make_move(board, {"fromX": 4, "fromY": 4, "toX": 4, "toY": 6})
+		undo_move(board, {"fromX": 4, "fromY": 4, "toX": 4, "toY": 6}, destination)
+		self.assertEquals(board[6][4], "bpawn")
+		self.assertEquals(board[4][4], "wrook")
+		
+	#short castling white
+	def test_move_unmaker_3(self):
+		board = start_board()
+		board[0][5] = ""
+		board[0][6] = ""
+		destination = make_move(board, {"fromX": 4, "fromY": 0, "toX": 6, "toY": 0})
+		undo_move(board, {"fromX": 4, "fromY": 0, "toX": 6, "toY": 0}, destination)
+		self.assertEquals(board[0][4], "wking")
+		self.assertEquals(board[0][5], "")
+		self.assertEquals(board[0][6], "")
+		self.assertEquals(board[0][7], "wrook")	
+		
+	#long castling white
+	def test_move_unmaker_4(self):
+		board = start_board()
+		board[0][1] = ""
+		board[0][2] = ""
+		board[0][3] = ""
+		destination = make_move(board, {"fromX": 4, "fromY": 0, "toX": 2, "toY": 0})
+		undo_move(board, {"fromX": 4, "fromY": 0, "toX": 2, "toY": 0}, destination)
+		self.assertEquals(board[0][0], "wrook")
+		self.assertEquals(board[0][1], "")
+		self.assertEquals(board[0][2], "")
+		self.assertEquals(board[0][3], "")			
+		self.assertEquals(board[0][4], "wking")
+		
+	#short castling black
+	def test_move_unmaker_5(self):
+		board = start_board()
+		board[7][5] = ""
+		board[7][6] = ""
+		destination = make_move(board, {"fromX": 4, "fromY": 7, "toX": 6, "toY": 7})
+		undo_move(board, {"fromX": 4, "fromY": 7, "toX": 6, "toY": 7}, destination)
+		self.assertEquals(board[7][4], "bking")
+		self.assertEquals(board[7][5], "")
+		self.assertEquals(board[7][6], "")
+		self.assertEquals(board[7][7], "brook")	
+		
+	#long castling black
+	def test_move_unmaker_6(self):
+		board = start_board()
+		board[7][1] = ""
+		board[7][2] = ""
+		board[7][3] = ""
+		destination = make_move(board, {"fromX": 4, "fromY": 7, "toX": 2, "toY": 7})
+		undo_move(board, {"fromX": 4, "fromY": 7, "toX": 2, "toY": 7}, destination)
+		self.assertEquals(board[7][0], "brook")
+		self.assertEquals(board[7][1], "")
+		self.assertEquals(board[7][2], "")
+		self.assertEquals(board[7][3], "")			
+		self.assertEquals(board[7][4], "bking")	
+
+	#white pawn into queen 
+	def test_move_unmaker_7(self):
+		board = start_board()
+		board[6][0] = "wpawn"
+		board[6][1] = ""
+		board[7][0] = ""
+		board[7][1] = ""
+		
+		destination = make_move(board, {"fromX": 0, "fromY": 6, "toX": 0, "toY": 7})
+		undo_move(board, {"fromX": 0, "fromY": 6, "toX": 0, "toY": 7}, destination)
+		self.assertEquals(board[7][0], "")
+		self.assertEquals(board[6][0], "wpawn")
+
+	#black pawn into queen 
+	def test_move_unmaker_8(self):
+		board = start_board()
+		board[1][0] = "bpawn"
+		board[1][1] = ""
+		board[0][0] = ""
+		board[0][1] = ""
+		
+		destination = make_move(board, {"fromX": 0, "fromY": 1, "toX": 0, "toY": 0})
+		undo_move(board, {"fromX": 0, "fromY": 1, "toX": 0, "toY": 0}, destination)
+		self.assertEquals(board[0][0], "")
+		self.assertEquals(board[1][0], "bpawn")
+
 		

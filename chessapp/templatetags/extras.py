@@ -271,7 +271,7 @@ def pick_move(board, color, dept):
 		undo_move(board, move, destination)	
 	return (max_move, max_score)
 
-	
+#executes the move assuming it is legal
 def make_move(board, move):
 	destination = board[move["toY"]][move["toX"]]
 	board[move["toY"]][move["toX"]] = board[move["fromY"]][move["fromX"]]
@@ -284,7 +284,22 @@ def make_move(board, move):
 	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 6 and move["toY"] == 0:
 		board[0][5] = board[0][7]
 		board[0][7] = ""
-
+	#black long castle
+	if move["fromX"] == 4 and move["fromY"] == 7 and move["toX"] == 2 and move["toY"] == 7:
+		board[7][3] = board[7][0]
+		board[7][0] = ""
+	#black short castle
+	if move["fromX"] == 4 and move["fromY"] == 7 and move["toX"] == 6 and move["toY"] == 7:
+		board[7][5] = board[7][7]
+		board[7][7] = ""
+	#white pawn to queen
+	if move["toY"] == 7 and board[move["toY"]][move["toX"]] == "wpawn":
+		board[move["toY"]][move["toX"]] = "wqueen"
+	#black pawn to queen
+	if move["toY"] == 0 and board[move["toY"]][move["toX"]] == "bpawn":
+		board[move["toY"]][move["toX"]] = "bqueen"		
+		
+		
 	return destination
 	
 def undo_move(board, move, destination):
@@ -298,7 +313,22 @@ def undo_move(board, move, destination):
 	if move["fromX"] == 4 and move["fromY"] == 0 and move["toX"] == 6 and move["toY"] == 0:
 		board[0][7] = board[0][5]
 		board[0][5] = ""
-
+	#black long castle
+	if move["fromX"] == 4 and move["fromY"] == 7 and move["toX"] == 2 and move["toY"] == 7:
+		board[7][0] = board[7][3]
+		board[7][3] = ""	
+	#black short castle
+	if move["fromX"] == 4 and move["fromY"] == 7 and move["toX"] == 6 and move["toY"] == 7:
+		board[7][7] = board[7][5]
+		board[7][5] = ""
+	#white pawn to queen
+	if move["toY"] == 7 and move["fromY"] == 6 and board[move["fromY"]][move["fromX"]] == "wqueen":
+		board[move["fromY"]][move["fromX"]] = "wpawn"
+	#black pawn to queen
+	if move["toY"] == 0 and move["fromY"] == 1 and board[move["fromY"]][move["fromX"]] == "bqueen":
+		board[move["fromY"]][move["fromX"]] = "bpawn"
+		
+		
 def scoreBoard(board):
 	score = 0
 	pieces = []
