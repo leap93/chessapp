@@ -144,6 +144,14 @@ def execute_move(board, move):
 	if move.from_square[0] == "4" and move.from_square[1] == "0" and move.to_square[0] == "6" and move.to_square[1] == "0":
 		board[0][5] = board[0][7]
 		board[0][7] = ""
+	#black long castle
+	if move.from_square[0] == "4" and move.from_square[1] == "7" and move.to_square[0] == "2" and move.to_square[1] == "7":
+		board[7][3] = board[7][0]
+		board[7][0] = ""
+	#black short castle
+	if move.from_square[0] == "4" and move.from_square[1] == "7" and move.to_square[0] == "6" and move.to_square[1] == "7":
+		board[7][5] = board[7][7]
+		board[7][7] = ""		
 	#black pawn to queen
 	if move.from_square[1] == "1" and move.to_square[1] == "0" and board[int(move.to_square[1])][int(move.to_square[0])] == "bpawn":
 		board[int(move.to_square[1])][int(move.to_square[0])] = "bqueen"
