@@ -17,7 +17,13 @@ def games(request):
 	id = request.GET.get('id')
 	
 	if id is not None:
-		game = Game.objects.filter(id = id)[0]		
+		game = Game.objects.filter(id = id)
+		if len(game) == 0:
+			return render(request, 'chessapp/error.html', {"message" : "Game ID is invalid"})
+		game = game[0]
+		
+		if not game.white_player == request.user and not game.black_player == request.user:
+			return render(request, 'chessapp/error.html', {"message" : "You are not participating in this game."})
 		
 		player_color = "b"
 		opponent_color = "w"

@@ -7,19 +7,20 @@ from django.utils import timezone
 
 class TestGames(TestCase):
 	def setUp(self):
-		# Every test needs access to the request factory.
 		self.factory = RequestFactory()
 		self.cpu = User.objects.create_user(username='CPU', password='12345')
 		self.user = User.objects.create_user(username='testuser', password='12345')
+		self.bob = User.objects.create_user(username='bob', password='12345')
 		login = self.client.login(username='testuser', password='12345')
 
-
+	#page with no games
 	def test_games_view_1(self):
 		response = self.client.get('/chessapp/games')
 		self.assertEqual(response.status_code, 200)
 		self.assertTrue("No games" in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/games.html')
-		
+			
+	#page with 4 games
 	def test_games_view_2(self):
 		game1 = Game.objects.create(start_date = timezone.now(), end_date = timezone.now(), black_player = self.user, white_player = self.cpu)
 		game2 = Game.objects.create(start_date = timezone.now(), end_date = timezone.now(), white_player = self.user, black_player = self.cpu)
@@ -33,3 +34,27 @@ class TestGames(TestCase):
 		game2.delete()
 		game3.delete()
 		game4.delete()
+		
+	#unknown game id
+	def test_game_view_1(self):
+		response = self.client.get('/chessapp/games?id=1000')
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue("Game ID is invalid" in str(response.content))
+		self.assertTemplateUsed(response, 'chessapp/error.html')		
+
+	#game where the player does not participate in
+	def test_game_view_2(self):
+		game = Game.objects.create(start_date = timezone.now(), white_player = self.bob, black_player = self.cpu)
+		response = self.client.get('/chessapp/games?id=1')
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue("You are not participating in this game." in str(response.content))
+		self.assertTemplateUsed(response, 'chessapp/error.html')		
+
+	#known game id
+	def test_game_view_3(self):
+		game = Game.objects.create(start_date = timezone.now(), white_player = self.user, black_player = self.cpu)
+		response = self.client.get('/chessapp/games?id=1')
+		self.assertEqual(response.status_code, 200)
+		self.assertTrue("testuser against CPU" in str(response.content))
+		self.assertTemplateUsed(response, 'chessapp/game.html')
+		game.delete()
