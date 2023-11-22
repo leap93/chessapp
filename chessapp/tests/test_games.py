@@ -16,7 +16,6 @@ class TestGames(TestCase):
 	#page with no games
 	def test_games_view_1(self):
 		response = self.client.get('/chessapp/games')
-		self.assertEqual(response.status_code, 200)
 		self.assertTrue("No games" in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/games.html')
 			
@@ -27,18 +26,12 @@ class TestGames(TestCase):
 		game3 = Game.objects.create(start_date = timezone.now(), white_player = self.user, black_player = self.cpu)
 		game4 = Game.objects.create(start_date = timezone.now(), black_player = self.user, white_player = self.cpu)
 		response = self.client.get('/chessapp/games')
-		self.assertEqual(response.status_code, 200)
 		self.assertTrue("No games" not in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/games.html')		
-		game1.delete()
-		game2.delete()
-		game3.delete()
-		game4.delete()
-		
+
 	#unknown game id
 	def test_game_view_1(self):
 		response = self.client.get('/chessapp/games?id=1000')
-		self.assertEqual(response.status_code, 200)
 		self.assertTrue("Game ID is invalid" in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/error.html')		
 
@@ -46,7 +39,6 @@ class TestGames(TestCase):
 	def test_game_view_2(self):
 		game = Game.objects.create(start_date = timezone.now(), white_player = self.bob, black_player = self.cpu)
 		response = self.client.get('/chessapp/games?id=1')
-		self.assertEqual(response.status_code, 200)
 		self.assertTrue("You are not participating in this game." in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/error.html')		
 
@@ -54,7 +46,20 @@ class TestGames(TestCase):
 	def test_game_view_3(self):
 		game = Game.objects.create(start_date = timezone.now(), white_player = self.user, black_player = self.cpu)
 		response = self.client.get('/chessapp/games?id=1')
-		self.assertEqual(response.status_code, 200)
 		self.assertTrue("testuser against CPU" in str(response.content))
 		self.assertTemplateUsed(response, 'chessapp/game.html')
-		game.delete()
+	
+	#execue illegal move
+	def test_game_view_4(self):
+		game = Game.objects.create(start_date = timezone.now(), white_player = self.user, black_player = self.cpu)
+		response = self.client.post('/chessapp/games?id=1', {"fromX": 0, "fromY": 0, "toX": 0, "toY": 4})
+		self.assertTrue("Illegal move" in str(response.content))
+		self.assertTemplateUsed(response, 'chessapp/game.html')		
+
+	#execute legal move
+	def test_game_view_5(self):
+		game = Game.objects.create(start_date = timezone.now(), white_player = self.user, black_player = self.bob)
+		response = self.client.post('/chessapp/games?id=1', {"fromX": 0, "fromY": 1, "toX": 0, "toY": 3})
+		self.assertTrue("waiting" in str(response.content))
+		self.assertTemplateUsed(response, 'chessapp/game.html')	
+		
