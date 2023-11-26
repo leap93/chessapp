@@ -3,7 +3,6 @@ from django.shortcuts import render
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from django.core.mail import send_mail
 from chessapp.models import Confirmation
 def registeration(request):
 
@@ -22,19 +21,7 @@ def registeration(request):
 		user.save()
 		code = 123456
 		
-		confirmation = Confirmation.objects.create(user = user, confirmation_code = code)
-		
-		send_mail(
-			"Your confirmation code",
-			"Your confimration code is " + str(code),
-			"chessapp@chessapp.com",
-			[email],
-			fail_silently=False,
-		)
-		
-		
-		
-		return render(request, 'chessapp/email_confirmation.html', {'message' : 'Registeration successful!'})
+		return render(request, 'chessapp/register.html', {'message' : 'Registeration successful!'})
 
 
 	if request.method == 'GET':
