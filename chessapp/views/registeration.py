@@ -3,7 +3,6 @@ from django.shortcuts import render
 from django.db import IntegrityError
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login
-from chessapp.models import Confirmation
 def registeration(request):
 
 	if request.method == 'POST':

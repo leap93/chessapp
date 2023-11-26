@@ -21,7 +21,7 @@ def login(request):
 	
 	if request.method == 'GET':
 		if 'next' in request.GET:
-			return render(request, 'chessapp/login.html', {'next' : request.GET['next'], 'message' : 'This pages requires a login'})
+			return render(request, 'chessapp/login.html', {'message' : 'This pages requires a login'})
 		else:
 			return render(request, 'chessapp/login.html')
 			
