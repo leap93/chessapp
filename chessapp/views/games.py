@@ -120,7 +120,7 @@ def games(request):
 				message = "waiting for oppoent's move..."
 				players_turn = False
 		elif player_color == "w":
-			message = message + "it's your turn"
+			message = message + "It's your turn"
 		else:
 			message = "waiting for oppoent's move..."
 			players_turn = False

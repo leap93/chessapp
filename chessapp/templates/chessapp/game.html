@@ -1,36 +1,55 @@
 {% load static %}
 {% load extras %}
-<a href="{% url 'games' %}">back to games</a>
-<p>{{ game.white_player}} against {{ game.black_player }} started {{ game.start_date }}.</p><br>
+
 {% csrf_token %}
 
-<table>
+<div style="text-align: left; width:49%; display: inline-block;">
+	
+	<table>
+	{% if player_color == "w" %}
+		{% for x in board reversed %}
+			<tr>
+				{% for y in x %}
+					<td>
+					<img src="{% static y|add:'.png' %}" width="100" height="100" onclick="boardClick({{ forloop.counter0 }}, {{ 7|subtract:forloop.parentloop.counter0 }}, this);" id="{{ forloop.counter0 }}{{ 7|subtract:forloop.parentloop.counter0 }}">
+					</td>
+				{% endfor %}
+			</tr>
+		{% endfor %}
 
-
-{% if player_color == "w" %}
-	{% for x in board reversed %}
-		<tr>
-			{% for y in x %}
+	{% else %}
+		{% for x in board %}
+			<tr>
+			{% for y in x reversed %}
 				<td>
-				<img src="{% static y|add:'.png' %}" width="100" height="100" onclick="boardClick({{ forloop.counter0 }}, {{ 7|subtract:forloop.parentloop.counter0 }}, this);" id="{{ forloop.counter0 }}{{ 7|subtract:forloop.parentloop.counter0 }}">
+				<img src="{% static y|add:'.png' %}" width="100" height="100" onclick="boardClick({{ 7|subtract:forloop.counter0 }}, {{ forloop.parentloop.counter0 }}, this);" id="{{ 7|subtract:forloop.counter0 }}{{ forloop.parentloop.counter0 }}">
 				</td>
 			{% endfor %}
-		</tr>
-	{% endfor %}
-
-{% else %}
-	{% for x in board %}
-		<tr>
-		{% for y in x reversed %}
-			<td>
-			<img src="{% static y|add:'.png' %}" width="100" height="100" onclick="boardClick({{ 7|subtract:forloop.counter0 }}, {{ forloop.parentloop.counter0 }}, this);" id="{{ 7|subtract:forloop.counter0 }}{{ forloop.parentloop.counter0 }}">
-			</td>
+			</tr>
 		{% endfor %}
-		</tr>
-	{% endfor %}
-{% endif %}
+	{% endif %}
 
-</table>
+	</table>
+
+</div>
+
+<div style="text-align: left; width:15%;  display: inline-block; ">
+
+	<a href="{% url 'games' %}">back to games</a>
+	<p>{{ game.white_player}} against {{ game.black_player }} started {{ game.start_date }}.</p>
+	<div style="display: inline-block; padding-bottom: 300px;">
+	</div>
+
+	<p id="message">{{message}}</p>
+
+	<div style="display: inline-block; padding-bottom: 400px;">
+	</div>
+</div>
+
+
+
+
+
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script type="text/javascript">
 	var lastMoveFrom = "{{last_move.from_square}}";
@@ -112,12 +131,19 @@
 				var redirect = '{{ request.path }}?id={{request.GET.id}}';
 				$.redirectPost(redirect, {fromX : selectedX.toString(), fromY: selectedY.toString(), toX: x.toString(), toY: y.toString()});
 			}else{
-				document.getElementById("message").innerHTML = "Illegal move!";
+				if(selectedX == x && selectedY == y){
+					document.getElementById("message").innerHTML = "It's your turn";
+				}else{
+					document.getElementById("message").innerHTML = "Illegal move!";
+				}
+				
 				//unhighlight the possible moves
 				removeHighlights();
 				//highlight opponent's move
-				highlightSquare(lastMoveFrom, "r");
-				highlightSquare(lastMoveTo, "r");
+				if(!lastMoveFrom == ""){
+					highlightSquare(lastMoveFrom, "r");
+					highlightSquare(lastMoveTo, "r");
+				}
 				selectedX = -1;
 				selectedY = -1;					
 			}
@@ -188,4 +214,4 @@
 	}
 	
 </script>
-<p id="message">{{message}}</p>
+
