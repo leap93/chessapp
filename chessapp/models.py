@@ -16,3 +16,9 @@ class Move(models.Model):
 	from_square = models.TextField()
 	to_square = models.TextField()
 	
+class Message(models.Model):
+	game = models.ForeignKey(Game, on_delete=models.CASCADE)
+	send_date = models.DateTimeField()
+	sender = models.ForeignKey(User, related_name="sender", on_delete=models.CASCADE)
+	message = models.TextField()	
+	

@@ -1,12 +1,11 @@
 from django.shortcuts import render
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from chessapp.models import Game, Move
+from chessapp.models import Game, Move, Message
 from django.views.decorators.csrf import csrf_exempt	
 from django.utils import timezone
 from chessapp.templatetags.extras import is_legal_move, move_causes_check, pick_move, possible_castlings, all_legal_moves
 @login_required
-@csrf_exempt
 def games(request):
 	#moves = Move.objects.all()
 	#moves[len(moves)-1].delete()
@@ -24,6 +23,10 @@ def games(request):
 		
 		if not game.white_player == request.user and not game.black_player == request.user:
 			return render(request, 'chessapp/error.html', {"message" : "You are not participating in this game."})
+		
+		
+		#get in-game messages
+		igmessages = Message.objects.filter(game = game)
 		
 		player_color = "b"
 		opponent_color = "w"
@@ -124,7 +127,7 @@ def games(request):
 		else:
 			message = "waiting for oppoent's move..."
 			players_turn = False
-		return render(request, 'chessapp/game.html', {"game" : game, "board" : board, "message" : message, "players_turn": players_turn, "player_color": player_color, "moves": filetered_moves, "last_move" : lastMove})
+		return render(request, 'chessapp/game.html', {"game" : game, "board" : board, "message" : message, "players_turn": players_turn, "player_color": player_color, "moves": filetered_moves, "last_move" : lastMove, "igmessages" : igmessages})
 	else:
 		games1 = Game.objects.filter(white_player=request.user, end_date__isnull=True)
 		games2 = Game.objects.filter(black_player=request.user, end_date__isnull=True)

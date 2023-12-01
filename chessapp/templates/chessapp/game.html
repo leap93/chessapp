@@ -42,8 +42,22 @@
 
 	<p id="message">{{message}}</p>
 
-	<div style="display: inline-block; padding-bottom: 400px;">
+	<div style="display: inline-block; padding-bottom: 300px;">
 	</div>
+	
+	<div>
+		{% for igmessage in igmessages %}
+		
+		{% empty %}
+		<p>No messages</p>
+		{% endfor %}
+	</div>
+	<form method="post" action="{% url 'messages' %}">
+	{% csrf_token %}
+	<input type="hidden" name="id" value="{{game.id}}">
+	<label for="message">Send a message</label><br>
+	<input type="text" required name="message"><input type="submit" value="send">
+	</form>
 </div>
 
 
